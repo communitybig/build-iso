@@ -48,44 +48,44 @@ jobs:
       #     format: 'YY.MM.DD'
       
       - name: Build and Upload GitHub
-        uses: BigLinux-Package-Build/build-iso@main
+        uses: talesam/build-iso@main
         with:
           edition: ${{ matrix.edition }}
           manjarobranch: ${{ matrix.manjarobranch }}
           bigbranch: ${{ matrix.bigbranch }}
           kernel: ${{ matrix.kernel }}
           extrarepo: ${{ matrix.extrarepo }}
-          iso-profiles-repo: 'https://github.com/biglinux/iso-profiles'
+          iso-profiles-repo: 'https://github.com/talesam/iso-profiles'
           release-tag: ${{ needs.prepare-release.outputs.release_tag }}
           tmate: ${{ inputs.debug_enabled }}
           
-      - name: Prepare Files to Upload
-        shell: bash -O extglob {0}
-        run: |
-          ls -lh
-          mkdir iso
-          for i in *.iso *.torrent *.pkgs *.md5; do
-          cp $i iso/
-          done
-          
-      - name: Verify md5sum
-        shell: bash -O extglob {0}
-        run: |
-          cd iso
-          mkdir mnt
-          find -type f -iname "*.iso" -exec sudo mount -o loop {} mnt \;
-          cd mnt/manjaro/x86_64/
-          for i in *.md5; do 
-            if [ "$(md5sum -c $i | cut -d " " -f2)" != "OK" ]; then
-              echo "deu ruim no md5dum do arquivo $i"
-              exit 1
-            else
-              echo "md5sum do arquivo $i está OK"
-            fi
-          done
-          cd ../../..
-          sudo umount mnt
-          
+#       - name: Prepare Files to Upload
+#         shell: bash -O extglob {0}
+#         run: |
+#           ls -lh
+#           mkdir iso
+#           for i in *.iso *.torrent *.pkgs *.md5; do
+#           cp $i iso/
+#           done
+#           
+#       - name: Verify md5sum
+#         shell: bash -O extglob {0}
+#         run: |
+#           cd iso
+#           mkdir mnt
+#           find -type f -iname "*.iso" -exec sudo mount -o loop {} mnt \;
+#           cd mnt/manjaro/x86_64/
+#           for i in *.md5; do 
+#             if [ "$(md5sum -c $i | cut -d " " -f2)" != "OK" ]; then
+#               echo "deu ruim no md5dum do arquivo $i"
+#               exit 1
+#             else
+#               echo "md5sum do arquivo $i está OK"
+#             fi
+#           done
+#           cd ../../..
+#           sudo umount mnt
+#           
       # - name: Prepare and Push to CDN77
       #   shell: bash -O extglob {0}
       #   run: |
@@ -97,25 +97,25 @@ jobs:
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       
-      - name: Push to Repo Nimbus
-        shell: bash -O extglob {0}
-        run: |
-          echo "## ssh setup"
-          mkdir -p /home/runner/.ssh
-          touch /home/runner/.ssh/github_actions
-          chmod 600 /home/runner/.ssh/github_actions
-          echo "${{ secrets.PKGBUILD_KEY }}" > /home/runner/.ssh/github_actions
-          eval `ssh-agent -s`
-          ssh-add /home/runner/.ssh/github_actions
-          ssh-keyscan -t rsa -p ${{ secrets.PKGBUILD_PORT }} ${{ secrets.PKGBUILD_HOST }} >> /home/runner/.ssh/known_hosts
-          ip=$(ssh ${{ secrets.PKGBUILD_USER }}@${{ secrets.PKGBUILD_HOST }} -p ${{ secrets.PKGBUILD_PORT }} 'echo $(curl -s ident.me) | tail -n1')
-          ssh-keyscan -t rsa -p ${{ secrets.PKGBUILD_PORT }} $ip >> /home/runner/.ssh/known_hosts
-          
-          #push files
-          for i in *.iso *.torrent *.pkgs *.md5; do
-          test -e $i && rsync -vaPpz -e "ssh -p ${{ secrets.PKGBUILD_PORT }}" $i ${{ secrets.PKGBUILD_USER }}@$ip:${{ secrets.NIMBUS_DIR }}
-          done
-          
+#       - name: Push to Repo Nimbus
+#         shell: bash -O extglob {0}
+#         run: |
+#           echo "## ssh setup"
+#           mkdir -p /home/runner/.ssh
+#           touch /home/runner/.ssh/github_actions
+#           chmod 600 /home/runner/.ssh/github_actions
+#           echo "${{ secrets.PKGBUILD_KEY }}" > /home/runner/.ssh/github_actions
+#           eval `ssh-agent -s`
+#           ssh-add /home/runner/.ssh/github_actions
+#           ssh-keyscan -t rsa -p ${{ secrets.PKGBUILD_PORT }} ${{ secrets.PKGBUILD_HOST }} >> /home/runner/.ssh/known_hosts
+#           ip=$(ssh ${{ secrets.PKGBUILD_USER }}@${{ secrets.PKGBUILD_HOST }} -p ${{ secrets.PKGBUILD_PORT }} 'echo $(curl -s ident.me) | tail -n1')
+#           ssh-keyscan -t rsa -p ${{ secrets.PKGBUILD_PORT }} $ip >> /home/runner/.ssh/known_hosts
+#           
+#           #push files
+#           for i in *.iso *.torrent *.pkgs *.md5; do
+#           test -e $i && rsync -vaPpz -e "ssh -p ${{ secrets.PKGBUILD_PORT }}" $i ${{ secrets.PKGBUILD_USER }}@$ip:${{ secrets.NIMBUS_DIR }}
+#           done
+#           
 #       - name: Upload OSDN
 #         shell: bash -O extglob {0}
 #         #env:
@@ -154,16 +154,16 @@ jobs:
           #ssh xivastudio@shell.sourceforge.net create
           #rsync -CavzpP --progress --rsh=ssh iso/ ${{ secrets.XIVASTUDIO_SOURCEFORGE_USER }}@${{ secrets.XIVASTUDIO_SOURCEFORGE_HOST }}:${{ secrets.XIVASTUDIO_SOURCEFORGE_ISO_DIR_BIGLINUX }}
 
-      - name: Telegram Alert Success
-        shell: bash -O extglob {0}
-        run: |
-          curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${{ secrets.CHAT_ID }}", "text": "💿 ISO: ${{ github.workflow }} Criada com Sucesso.", "disable_notification": true}' ${{ secrets.MESSAGE_BOT_KEY }}
-          
-      - name: Telegram Alerta Fail
-        # if: ${{ failure() || cancelled() }}
-        if: ${{ failure() }}
-        run: |
-          #echo ${{ github.token }} | gh auth login --with-token
-          #gh release delete ${{ needs.prepare-release.outputs.release_tag }} -y --repo ${{ github.repository }}
-          
-          curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${{ secrets.CHAT_ID }}", "text": "🚨 Falha ao gerar ISO  ${{ github.workflow }} link https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "disable_notification": "false", "disable_web_page_preview": "true" "message_thread_id": "6"}' ${{ secrets.MESSAGE_BOT_KEY }}
+#       - name: Telegram Alert Success
+#         shell: bash -O extglob {0}
+#         run: |
+#           curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${{ secrets.CHAT_ID }}", "text": "💿 ISO: ${{ github.workflow }} Criada com Sucesso.", "disable_notification": true}' ${{ secrets.MESSAGE_BOT_KEY }}
+#           
+#       - name: Telegram Alerta Fail
+#         # if: ${{ failure() || cancelled() }}
+#         if: ${{ failure() }}
+#         run: |
+#           #echo ${{ github.token }} | gh auth login --with-token
+#           #gh release delete ${{ needs.prepare-release.outputs.release_tag }} -y --repo ${{ github.repository }}
+#           
+#           curl -X POST -H 'Content-Type: application/json' -d '{"chat_id": "${{ secrets.CHAT_ID }}", "text": "🚨 Falha ao gerar ISO  ${{ github.workflow }} link https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "disable_notification": "false", "disable_web_page_preview": "true" "message_thread_id": "6"}' ${{ secrets.MESSAGE_BOT_KEY }}
