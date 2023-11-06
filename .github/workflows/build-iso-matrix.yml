@@ -1,4 +1,4 @@
-name: Biglinux Build ISO BigLinux Matrix
+name: Biglinux Gnome Build ISO BigLinux Matrix
 on:
   workflow_dispatch:
     inputs:
@@ -32,14 +32,14 @@ jobs:
     needs: [prepare-release]
     strategy:
       matrix:
-        EDITION: [kde]
+        EDITION: [gnome]
         MANJAROBRANCH: [stable]
         BIGBRANCH: [stable]
         # SCOPE: [full]
         #EXTRAREPO: []
         # KERNEL: [510, 515, 60]
         # KERNEL: [510, 515, latest]
-        KERNEL: [oldLts, atualLts, latest]
+        KERNEL: [atualLts, latest]
         
     steps:
       # - id: time
