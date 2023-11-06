@@ -559,18 +559,18 @@ runs:
       
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         
-#         if [ "${EDITION}" = "xivastudio" ]; then
-#           name=xivastudio
-#         else
-#           name=biglinux
-#         fi
+        if [ "${EDITION}" = "gnome" ]; then
+          name=xivastudio
+        else
+          name=biglinux
+        fi
         
-#         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
-#         if [ "${EDITION}" = "kde" -o "${EDITION}" = "xivastudio" ];then
-#           EDITION=
-#         else
-#           EDITION=_${EDITION}
-#         fi
+        #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
+        if [ "${EDITION}" = "kde" -o "${EDITION}" = "gnome" ];then
+          EDITION=
+        else
+          EDITION=_${EDITION}
+        fi
         
         #Kernel Name
         if [ "$KERNEL" != "xanmod" ];then
