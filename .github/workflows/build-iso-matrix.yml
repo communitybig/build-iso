@@ -1,4 +1,4 @@
-name: Biglinux Gnome Build ISO BigLinux Matrix
+name: BigGnome Build ISO BigLinux Matrix
 on:
   workflow_dispatch:
     inputs:
