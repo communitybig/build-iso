@@ -561,7 +561,7 @@ runs:
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         
         if [ "${EDITION}" = "gnome" ]; then
-          name=gnome
+          name=biglinux
         else
           name=biglinux
         fi
@@ -582,7 +582,7 @@ runs:
         fi
             
         #renome ISO
-        if [ "$BIGBRANCH" = "development" ];then
+        if [ "$BIGBRANCH" = "stable" ];then
           # TARGET_ISO_PATH=${EDITION}_DEVELOPMENT_${{ inputs.release-tag }}_k${KERNEL}.iso
           TARGET_ISO_PATH=${name}_DEVELOPMENT${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
         elif [ "$BIGBRANCH" = "beta" ];then
@@ -629,18 +629,18 @@ runs:
         
         mkdir -p ${{ inputs.edition }}/${{ inputs.version }}
         
-    - id: Torrent
-      shell: bash -O extglob {0}
-      env:
-        EXTRAREPO: ${{ inputs.extrarepo }}
-      run: |
-        echo "### Torrent ###"
-        if [ "${{ inputs.bigbranch }}" = "development" ];then
-          mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
-          -w "https://iso.biglinux.com.br/${{ steps.image-build.outputs.file-path }}" \
-          -w "https://osdn.net/projects/biglinux/storage/${{ steps.image-build.outputs.file-path }}" \
-          -o ${{ steps.image-build.outputs.file-path }}.torrent ${{ steps.image-build.outputs.file-path }}
-        fi
+#     - id: Torrent
+#       shell: bash -O extglob {0}
+#       env:
+#         EXTRAREPO: ${{ inputs.extrarepo }}
+#       run: |
+#         echo "### Torrent ###"
+#         if [ "${{ inputs.bigbranch }}" = "development" ];then
+#           mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
+#           -w "https://iso.biglinux.com.br/${{ steps.image-build.outputs.file-path }}" \
+#           -w "https://osdn.net/projects/biglinux/storage/${{ steps.image-build.outputs.file-path }}" \
+#           -o ${{ steps.image-build.outputs.file-path }}.torrent ${{ steps.image-build.outputs.file-path }}
+#         fi
     
     - id: upload-github-release
       shell: bash -O extglob {0}
@@ -649,7 +649,7 @@ runs:
       run: |
         echo "### upload-github-release ###"
         
-        if [ "${{ inputs.bigbranch }}" = "development" ];then
+        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "development" ]; then
           echo "## github upload"
           release=$(echo ${{ steps.image-build.outputs.file-path }} | sed 's/_k.*//' | sed 's/_x.*//')
 

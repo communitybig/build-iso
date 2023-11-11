@@ -34,8 +34,8 @@ jobs:
       matrix:
         EDITION: [gnome]
         MANJAROBRANCH: [stable]
-        BIGBRANCH: [development]
-        EXTRAREPO: [testing]
+        BIGBRANCH: [stable]
+        #EXTRAREPO: [testing]
         # SCOPE: [full]
         #EXTRAREPO: []
         # KERNEL: [510, 515, 60]
