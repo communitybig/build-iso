@@ -32,8 +32,8 @@ jobs:
     needs: [prepare-release]
     strategy:
       matrix:
-        EDITION: [kde]
-        MANJAROBRANCH: [stable]
+        EDITION: [gnome]
+        MANJAROBRANCH: [testing]
         BIGBRANCH: [testing]
         # SCOPE: [full]
         #EXTRAREPO: []
