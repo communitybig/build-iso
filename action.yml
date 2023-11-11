@@ -635,7 +635,7 @@ runs:
         EXTRAREPO: ${{ inputs.extrarepo }}
       run: |
         echo "### Torrent ###"
-        if [ "${{ inputs.bigbranch }}" = "$BIGBRANCH" ];then
+        if [ "${{ inputs.bigbranch }}" = "development" ];then
           mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
           -w "https://iso.biglinux.com.br/${{ steps.image-build.outputs.file-path }}" \
           -w "https://osdn.net/projects/biglinux/storage/${{ steps.image-build.outputs.file-path }}" \
@@ -649,7 +649,7 @@ runs:
       run: |
         echo "### upload-github-release ###"
         
-        if [ "${{ inputs.bigbranch }}" = "$BIGBRANCH" ];then
+        if [ "${{ inputs.bigbranch }}" = "development" ];then
           echo "## github upload"
           release=$(echo ${{ steps.image-build.outputs.file-path }} | sed 's/_k.*//' | sed 's/_x.*//')
 
