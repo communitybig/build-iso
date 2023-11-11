@@ -32,7 +32,7 @@ jobs:
     needs: [prepare-release]
     strategy:
       matrix:
-        EDITION: [gnome]
+        EDITION: [kde]
         MANJAROBRANCH: [stable]
         BIGBRANCH: [testing]
         # SCOPE: [full]
