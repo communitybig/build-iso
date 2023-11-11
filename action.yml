@@ -15,7 +15,7 @@ inputs:
     default: stable
   bigbranch:
     description: 'stable, beta, development'
-    default: testing
+    default: development
     required: true
   scope:
     description: 'full (default) or minimal image'
