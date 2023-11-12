@@ -582,7 +582,7 @@ runs:
         fi
             
         #renome ISO
-        if [ "$BIGBRANCH" = "stable" ];then
+        if [ "$BIGBRANCH" = "development" ];then
           # TARGET_ISO_PATH=${EDITION}_DEVELOPMENT_${{ inputs.release-tag }}_k${KERNEL}.iso
           TARGET_ISO_PATH=${name}_DEVELOPMENT${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
         elif [ "$BIGBRANCH" = "beta" ];then
