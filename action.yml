@@ -562,20 +562,20 @@ runs:
         
         # Definie o nome que será imprimido no arquivo e enviado para o github
         #name=biglinux
-        if [ "${EDITION}" = "gnome" ]; then
+#         if [ "${EDITION}" = "gnome" ]; then
           name=biglinux
-        else
-          name=biglinux
-        fi
+#         else
+#           name=biglinux
+#         fi
         
         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
         # Definie o nome da edição, será usado no arquivo
         #EDITION=gnome
-        if [ "${EDITION}" = "gnome" ];then
+#         if [ "${EDITION}" = "gnome" ];then
           EDITION=gnome
-        else
-          EDITION=_${EDITION}
-        fi
+#         else
+#           EDITION=_${EDITION}
+#         fi
         
         #Kernel Name
         if [ "$KERNEL" != "xanmod" ];then
@@ -592,7 +592,7 @@ runs:
           TARGET_ISO_PATH=${name}_${EDITION}_BETA_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         else
           #TARGET_ISO_PATH=${name}_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-          TARGET_ISO_PATH=${name}_${EDITION}_${BUILD_RELEASE}_${KERNEL}.iso
+          TARGET_ISO_PATH=${name}_${EDITION}_BETA_${KERNEL}.iso
         fi
         
         sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
