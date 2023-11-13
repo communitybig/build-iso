@@ -570,7 +570,7 @@ runs:
         
         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
         # Definie o nome da edição, será usado no arquivo
-        EDITION=gnome
+          EDITION=gnome
 #         if [ "${EDITION}" = "gnome" ];then
 #           EDITION=gnome
 #         else
