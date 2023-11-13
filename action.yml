@@ -561,12 +561,11 @@ runs:
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         
         # Definie o nome que será imprimido no arquivo e enviado para o github
-        name=biglinux
-#         if [ "${EDITION}" = "gnome" ]; then
-#           name=biglinux
-#         else
-#           name=biglinux
-#         fi
+        if [ "${EDITION}" = "gnome" ]; then
+          name=biglinux
+        else
+          name=biglinux
+        fi
         
         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
         # Definie o nome da edição, será usado no arquivo
