@@ -566,12 +566,12 @@ runs:
            name=biglinux
          fi
         
-#         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
-#         if [ "${EDITION}" = "kde" -o "${EDITION}" = "gnome" ];then
-#           EDITION=
-#         else
-#           EDITION=_${EDITION}
-#         fi
+        #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
+        if [ "${EDITION}" = "gnome" ];then
+          EDITION=gnome
+        else
+          EDITION=_${EDITION}
+        fi
         
         #Kernel Name
         if [ "$KERNEL" != "xanmod" ];then
