@@ -563,7 +563,7 @@ runs:
 #         if [ "${EDITION}" = "gnome" ]; then
 #           name=biglinux
 #         else
-           name=biglinux
+          name=biglinux
 #         fi
         
 #         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
