@@ -590,7 +590,7 @@ runs:
           TARGET_ISO_PATH=${name}_${EDITION}_BETA_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         else
           #TARGET_ISO_PATH=${name}_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-          TARGET_ISO_PATH=${name}_${EDITION}_BETA_${KERNEL}.iso
+          TARGET_ISO_PATH=${name}_${EDITION}_BETA_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         fi
         
         sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
