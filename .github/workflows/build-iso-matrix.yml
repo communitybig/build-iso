@@ -40,7 +40,7 @@ jobs:
       matrix:
         EDITION: [gnome]  # Define a edição
         MANJAROBRANCH: [stable]  # Define a branch do Manjaro
-        BIGBRANCH: [stable]  # Define a branch do Biglinux
+        BIGBRANCH: [testing]  # Define a branch do Biglinux (stable, testing ou unstable)
         KERNEL: [latest]  # Define a versão do kernel
         
     steps:
