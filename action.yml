@@ -14,8 +14,8 @@ inputs:
     required: false
     default: stable
   bigbranch:
-    description: 'stable, testing, unstable' # beta, development
-    default: testing
+    description: 'stable, beta, development'
+    default: development
     required: false
   scope:
     description: 'full (default) or minimal image'
@@ -378,47 +378,24 @@ runs:
         # Disable pxe boot
         #sudo sed -i "s|miso_pxe_common miso_pxe_http miso_pxe_nbd miso_pxe_nfs||g" /usr/share/manjaro-tools/mkinitcpio.conf
 
-#         # Função para adicionar repositórios ao pacman
-#         add_repo_to_pacman_conf() {
-#             local conf_file=$1
-#             if [ -z "$(grep biglinux-keyring $conf_file)" ]; then
-#                 sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $conf_file
-#             fi
-#             if [ -z "$(grep biglinux-update-stable $conf_file)" ]; then
-#                 sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $conf_file
-#                 sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' $conf_file
-#                 sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' $conf_file
-#                 sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $conf_file
-#                 if [ "${{ inputs.bigbranch }}" = "testing" ]; then
-#                     echo -e '\n[biglinux-testing]\nSigLevel = PackageRequired\nServer = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $conf_file
-#                 fi
-#                 echo -e '\n[biglinux-stable]\nSigLevel = PackageRequired\nServer = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a $conf_file
-#             fi
-#         }
-# 
-#         # Chama a função para cada arquivo de configuração
-#         add_repo_to_pacman_conf /usr/share/manjaro-tools/pacman-default.conf
-#         add_repo_to_pacman_conf /usr/share/manjaro-tools/pacman-multilib.conf
-          
-          
         #add big update repository
         if [ -z "$(grep biglinux-keyring /usr/share/manjaro-tools/pacman-default.conf)" ];then
             sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' /usr/share/manjaro-tools/pacman-default.conf
         fi
         if [ -z "$(grep biglinux-update-stable /usr/share/manjaro-tools/pacman-default.conf)" ];then
-          sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
-          sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
-          # sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/devdevdev.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
-          sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
-          sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
-          if [ "${{ inputs.bigbranch }}" = "testing" ];then
-            echo '
+            sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
+            sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
+            # sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/devdevdev.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
+            sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
+            sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
+            if [ "${{ inputs.bigbranch }}" = "development" ];then
+              echo '
               
         [biglinux-testing]
         SigLevel = PackageRequired
         Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a /usr/share/manjaro-tools/pacman-default.conf
-          fi
-          echo '
+            fi
+            echo '
         [biglinux-stable]
         SigLevel = PackageRequired
         Server = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a /usr/share/manjaro-tools/pacman-default.conf
@@ -433,7 +410,7 @@ runs:
           # sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/devdevdev.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-multilib.conf
           sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-multilib.conf
           sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' /usr/share/manjaro-tools/pacman-multilib.conf
-          if [ "${{ inputs.bigbranch }}" = "testing" ];then
+          if [ "${{ inputs.bigbranch }}" = "development" ];then
             echo '
         [biglinux-testing]
         SigLevel = PackageRequired
@@ -505,12 +482,13 @@ runs:
         
         #KERNEL
         if [ "$KERNEL" = "oldLts" ];then
-          oldLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
-          KERNEL=$oldLts
+            oldLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
+            KERNEL=$oldLts
         elif [ "$KERNEL" = "atualLts" ];then
-          atualLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
-          KERNEL=$atualLts
+            atualLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
+            KERNEL=$atualLts
         elif [ "$KERNEL" = "latest" ];then
+          # kernelVer=62
           # kernelVer=$(pacman -Sl | grep linux[0-9] | grep core | grep -vE "rc|headers" | sort | tail -n1 | cut -d " " -f2 | sed 's/linux//')
           kernelVer=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
           echo "linux-latest"  | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
@@ -531,8 +509,8 @@ runs:
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
         
-        # testing
-        if [ "$BIGBRANCH" = "testing" ];then
+        # Development
+        if [ "$BIGBRANCH" = "development" ];then
           #add repo testing
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
@@ -551,7 +529,7 @@ runs:
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
           
           #add anti-ruscher
-          #echo anti-ruscher | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          echo anti-ruscher | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
           
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
@@ -575,14 +553,13 @@ runs:
         sudo buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL} ${OFFICE:+-o}
         
         if [ -n "$(echo $KERNEL | grep xanmod)" ];then
-          KERNEL=$(echo ${KERNEL} | sed 's/-//')
+            KERNEL=$(echo ${KERNEL} | sed 's/-//')
         fi
         
         sudo rm -Rf /var/lib/manjaro-tools/buildiso/*
       
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         
-        # Definie o nome que será imprimido no arquivo e enviado para o github
         if [ "${EDITION}" = "gnome" ]; then
           name=biglinux
         else
@@ -590,29 +567,30 @@ runs:
         fi
         
         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
-        # Definie o nome da edição, será usado no arquivo
-        if [ "${EDITION}" = "gnome" ];then
-          EDITION=gnome
+        if [ "${EDITION}" = "kde" -o "${EDITION}" = "gnome" ];then
+          EDITION=
         else
           EDITION=_${EDITION}
         fi
         
         #Kernel Name
         if [ "$KERNEL" != "xanmod" ];then
-          KERNEL=k${KERNEL}
+            KERNEL=k${KERNEL}
         elif [ "$KERNEL" = "xanmod" ];then
-          xanVer=$(grep linux-xanmod $(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}') | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
-          KERNEL=$(echo ${KERNEL} | sed 's/-//')${xanVer}
+            xanVer=$(grep linux-xanmod $(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}') | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
+            KERNEL=$(echo ${KERNEL} | sed 's/-//')${xanVer}
         fi
             
         #renome ISO
-        if [ "$BIGBRANCH" = "testing" ];then
-          #TARGET_ISO_PATH=${name}_${EDITION}_DEVELOPMENT_${{ inputs.release-tag }}_${KERNEL}.iso
-        #elif [ "$BIGBRANCH" = "beta" ];then
-          TARGET_ISO_PATH=${name}_${EDITION}_BETA_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        if [ "$BIGBRANCH" = "development" ];then
+          # TARGET_ISO_PATH=${EDITION}_DEVELOPMENT_${{ inputs.release-tag }}_k${KERNEL}.iso
+          TARGET_ISO_PATH=${name}_DEVELOPMENT${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
+        elif [ "$BIGBRANCH" = "beta" ];then
+         # TARGET_ISO_PATH=${EDITION}_BETA_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_k${KERNEL}.iso
+         TARGET_ISO_PATH=${name}_BETA${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         else
-          #TARGET_ISO_PATH=${name}_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-          TARGET_ISO_PATH=${name}_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+          # TARGET_ISO_PATH=${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_k${KERNEL}.iso
+          TARGET_ISO_PATH=${name}${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         fi
         
         sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
@@ -671,7 +649,7 @@ runs:
       run: |
         echo "### upload-github-release ###"
         
-        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "testing" ]; then
+        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "development" ]; then
           echo "## github upload"
           release=$(echo ${{ steps.image-build.outputs.file-path }} | sed 's/_k.*//' | sed 's/_x.*//')
 
