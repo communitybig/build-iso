@@ -378,27 +378,27 @@ runs:
         # Disable pxe boot
         #sudo sed -i "s|miso_pxe_common miso_pxe_http miso_pxe_nbd miso_pxe_nfs||g" /usr/share/manjaro-tools/mkinitcpio.conf
 
-          # Função para adicionar repositórios ao pacman
-          add_repo_to_pacman_conf() {
-              local conf_file=$1
-              if [ -z "$(grep biglinux-keyring $conf_file)" ]; then
-                  sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $conf_file
-              fi
-              if [ -z "$(grep biglinux-update-stable $conf_file)" ]; then
-                  sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $conf_file
-                  sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' $conf_file
-                  sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' $conf_file
-                  sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $conf_file
-                  if [ "${{ inputs.bigbranch }}" = "testing" ]; then
-                      echo -e '\n[biglinux-testing]\nSigLevel = PackageRequired\nServer = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $conf_file
-                  fi
-                  echo -e '\n[biglinux-stable]\nSigLevel = PackageRequired\nServer = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a $conf_file
-              fi
-          }
+        # Função para adicionar repositórios ao pacman
+        add_repo_to_pacman_conf() {
+            local conf_file=$1
+            if [ -z "$(grep biglinux-keyring $conf_file)" ]; then
+                sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $conf_file
+            fi
+            if [ -z "$(grep biglinux-update-stable $conf_file)" ]; then
+                sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $conf_file
+                sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' $conf_file
+                sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' $conf_file
+                sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $conf_file
+                if [ "${{ inputs.bigbranch }}" = "testing" ]; then
+                    echo -e '\n[biglinux-testing]\nSigLevel = PackageRequired\nServer = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $conf_file
+                fi
+                echo -e '\n[biglinux-stable]\nSigLevel = PackageRequired\nServer = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a $conf_file
+            fi
+        }
 
-          # Chama a função para cada arquivo de configuração
-          add_repo_to_pacman_conf /usr/share/manjaro-tools/pacman-default.conf
-          add_repo_to_pacman_conf /usr/share/manjaro-tools/pacman-multilib.conf
+        # Chama a função para cada arquivo de configuração
+        add_repo_to_pacman_conf /usr/share/manjaro-tools/pacman-default.conf
+        add_repo_to_pacman_conf /usr/share/manjaro-tools/pacman-multilib.conf
           
           
 #         #add big update repository
