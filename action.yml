@@ -14,7 +14,7 @@ inputs:
     required: false
     default: stable
   bigbranch:
-    description: 'stable, testing, unstable'
+    description: 'stable (default), testing, unstable'
     default: stable
     required: false
   scope:
@@ -388,7 +388,7 @@ runs:
           # sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/devdevdev.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
           sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
           sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' /usr/share/manjaro-tools/pacman-default.conf
-          if [ "${{ inputs.bigbranch }}" = "development" ];then
+          if [ "${{ inputs.bigbranch }}" = "testing" ];then
             echo '
               
         [biglinux-testing]
