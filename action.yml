@@ -582,7 +582,7 @@ runs:
         if [ "$BIGBRANCH" = "unstable" ];then
           TARGET_ISO_PATH=${name}_DEVELOPMENT${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
         elif [ "$BIGBRANCH" = "testing" ];then
-          TARGET_ISO_PATH=${name}_BETA${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+          TARGET_ISO_PATH=${name}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         else
           TARGET_ISO_PATH=${name}${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         fi
