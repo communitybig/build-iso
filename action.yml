@@ -509,8 +509,8 @@ runs:
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
         
-        # Development
-        if [ "$BIGBRANCH" = "development" ];then
+        # Testing
+        if [ "$BIGBRANCH" = "testing" ];then
           #add repo testing
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
