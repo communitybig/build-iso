@@ -410,7 +410,7 @@ runs:
           # sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/devdevdev.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-multilib.conf
           sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' /usr/share/manjaro-tools/pacman-multilib.conf
           sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' /usr/share/manjaro-tools/pacman-multilib.conf
-          if [ "${{ inputs.bigbranch }}" = "development" ];then
+          if [ "${{ inputs.bigbranch }}" = "testing" ];then
             echo '
         [biglinux-testing]
         SigLevel = PackageRequired
