@@ -564,8 +564,8 @@ runs:
         fi
         
         #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
-        if [ "${EDITION}" = "kde" -o "${EDITION}" = "gnome" ];then
-          EDITION=
+        if [ "${EDITION}" = "gnome" ];then
+          EDITION=gnome
         else
           EDITION=_${EDITION}
         fi
@@ -579,10 +579,10 @@ runs:
         fi
             
         #renome ISO
-        if [ "$BIGBRANCH" = "development" ];then
+        if [ "$BIGBRANCH" = "testing" ];then
           # TARGET_ISO_PATH=${EDITION}_DEVELOPMENT_${{ inputs.release-tag }}_k${KERNEL}.iso
-          TARGET_ISO_PATH=${name}_DEVELOPMENT${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
-        elif [ "$BIGBRANCH" = "beta" ];then
+#           TARGET_ISO_PATH=${name}_DEVELOPMENT${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
+#         elif [ "$BIGBRANCH" = "beta" ];then
           # TARGET_ISO_PATH=${EDITION}_BETA_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_k${KERNEL}.iso
           TARGET_ISO_PATH=${name}_BETA${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         else
@@ -646,7 +646,7 @@ runs:
       run: |
         echo "### upload-github-release ###"
         
-        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "development" ]; then
+        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "testing" ]; then
           echo "## github upload"
           release=$(echo ${{ steps.image-build.outputs.file-path }} | sed 's/_k.*//' | sed 's/_x.*//')
 
@@ -668,5 +668,5 @@ runs:
               ./${{ steps.image-build.outputs.file-path }}+(.z*|.sha*|.pkgs|.sig|.torrent|.md5)
           fi
         else
-          echo "Erro ao subir ISO para o repositório"
+          echo "Erro ao subir ISO para o GitHub"
         fi
