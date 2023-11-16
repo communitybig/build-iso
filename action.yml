@@ -510,7 +510,7 @@ runs:
 #         fi
         
         # Testing
-        if [ "$BIGBRANCH" = "testing" ];then
+        if [ "$BIGBRANCH" = "development" ];then
           #add repo testing
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
