@@ -529,7 +529,7 @@ runs:
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
           
           #add anti-ruscher
-          echo anti-ruscher | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          #echo anti-ruscher | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
         
