@@ -1,5 +1,5 @@
 # Nome do workflow
-name: Biglinux Build ISO Matrix Stable
+name: Biglinux Build ISO - Stable
 
 # Gatilhos para o workflow
 on:

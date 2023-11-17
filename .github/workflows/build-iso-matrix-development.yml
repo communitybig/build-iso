@@ -1,5 +1,5 @@
 # Nome do workflow
-name: Biglinux Build ISO Matrix Testing
+name: Biglinux Build ISO - Development
 
 # Gatilhos para o workflow
 on:
