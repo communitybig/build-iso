@@ -38,6 +38,7 @@ jobs:
     needs: [prepare-release]  # Depende do job prepare-release
     strategy:
       matrix:
+        NAME: biglinux
         EDITION: [gnome]  # Define a edição
         MANJAROBRANCH: [stable]  # Define a branch do Manjaro
         BIGBRANCH: [stable]  # Define a branch do Biglinux (stable, testing ou unstable)
@@ -47,6 +48,7 @@ jobs:
       - name: Build and Upload GitHub
         uses: talesam/build-iso@main  # Ação para construir e fazer upload da ISO
         with:
+          name: ${{ matrix.name }}
           edition: ${{ matrix.edition }}
           manjarobranch: ${{ matrix.manjarobranch }}
           bigbranch: ${{ matrix.bigbranch }}
