@@ -39,10 +39,10 @@ jobs:
     strategy:
       matrix:
         NAME: [biglinux] # Define o nome do SO
-        EDITION: [gnome]  # Define a edição
-        MANJAROBRANCH: [stable]  # Define a branch do Manjaro
-        BIGBRANCH: [stable]  # Define a branch do Biglinux (stable, testing ou unstable)
-        KERNEL: [latest]  # Define a versão do kernel
+        EDITION: [gnome] # Define a edição
+        MANJAROBRANCH: [stable] # Define a branch do Manjaro (stable, testing ou unstable)
+        BIGBRANCH: [stable] # Define a branch do Biglinux (stable ou testing)
+        KERNEL: [atualLts] # Define a versão do kernel (atualLts, latest)
         
     steps:
       - name: Build and Upload GitHub

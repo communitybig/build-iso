@@ -2,6 +2,9 @@ name: 'BigLinux Iso Action'
 description: 'Installs prerequisites for building Manjaro on ubuntu'
 
 inputs:
+  name:
+    description: 'Name for the ISO'
+    required: true
   iso-profiles-repo:
     description: 'iso profiles to clone'
     required: false
@@ -453,6 +456,7 @@ runs:
     - id: image-build
       shell: bash
       env:
+        NAME: ${{ inputs.name }}
         EDITION: ${{ inputs.edition }}
         MANJAROBRANCH: ${{ inputs.manjarobranch }}
         BIGBRANCH: ${{ inputs.bigbranch }}
@@ -557,19 +561,6 @@ runs:
       
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         
-        if [ "${EDITION}" = "gnome" ]; then
-          name=biglinux
-        else
-          name=biglinux
-        fi
-        
-        #TARGET_ISO_PATH=$(basename $OUTPUT_ISO_PATH)
-        if [ "${EDITION}" = "gnome" ];then
-          EDITION=gnome
-        else
-          EDITION=_${EDITION}
-        fi
-        
         #Kernel Name
         if [ "$KERNEL" != "xanmod" ];then
           KERNEL=k${KERNEL}
@@ -580,11 +571,11 @@ runs:
             
         #renome ISO
         if [ "$BIGBRANCH" = "unstable" ];then
-          TARGET_ISO_PATH=${name}_DEVELOPMENT_${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
+          TARGET_ISO_PATH=${NAME}_DEVELOPMENT_${EDITION}_${{ inputs.release-tag }}_${KERNEL}.iso
         elif [ "$BIGBRANCH" = "testing" ];then
-          TARGET_ISO_PATH=${name}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+          TARGET_ISO_PATH=${NAME}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         else
-          TARGET_ISO_PATH=${name}${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+          TARGET_ISO_PATH=${NAME}${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         fi
         
         sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
