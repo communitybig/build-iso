@@ -38,7 +38,7 @@ jobs:
     needs: [prepare-release]  # Depende do job prepare-release
     strategy:
       matrix:
-        NAME: biglinux
+        NAME: [biglinux] # Define o nome do SO
         EDITION: [gnome]  # Define a edição
         MANJAROBRANCH: [testing]  # Define a branch do Manjaro
         BIGBRANCH: [testing]  # Define a branch do Biglinux (stable, testing ou unstable)
