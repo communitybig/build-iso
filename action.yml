@@ -637,7 +637,7 @@ runs:
         
         if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "testing" ] || [ "${{ inputs.bigbranch }}" = "unstable" ]; then
           echo "## github upload"
-          release=$(echo ${{ steps.image-build.outputs.file-path }}
+          release=$(echo ${{ steps.image-build.outputs.file-path }})
           
           echo ${{ github.token }} | gh auth login --with-token
           gh release create ${release} --title ${release} --repo ${{ github.repository }} --notes "automated release" || echo "release already exists"
