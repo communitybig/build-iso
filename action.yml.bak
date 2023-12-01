@@ -574,6 +574,8 @@ runs:
         # Renomear ISO
         if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
             TARGET_ISO_PATH=${NAME}_STABLE_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
+            TARGET_ISO_PATH=${NAME}_RC_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
             TARGET_ISO_PATH=${NAME}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
