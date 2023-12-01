@@ -159,7 +159,7 @@ runs:
           sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
         popd
         sudo rm -r pacman
-        
+
     - id: install-keyrings
       shell: bash
       run: |
@@ -182,16 +182,51 @@ runs:
         popd
         sudo rm -r biglinux-keyring
 
+        # Nova lógica para baixar archlinux-keyring de vários espelhos
+        mirrors=(
+          "https://mirror.aarnet.edu.au/pub/archlinux/core/os/x86_64/"
+          "https://archlinux.mailtunnel.eu/core/os/x86_64/"
+          "https://archlinux.thaller.ws/core/os/x86_64/"
+          "https://mirror.checkdomain.de/archlinux/core/os/x86_64/"
+          "https://mirror.fra10.de.leaseweb.net/archlinux/core/os/x86_64/"
+          "https://archlinux.mirror.iphh.net/core/os/x86_64/"
+          "https://mirror.orbit-os.com/archlinux/core/os/x86_64/"
+          "https://mirror.pkgbuild.com/core/os/x86_64/"
+          "https://mirrors.niyawe.de/archlinux/core/os/x86_64/"
+          "https://archlinux.polymorf.fr/core/os/x86_64/"
+        )
+        max_retries=5
+        success=false
+
         mkdir -p archlinux-keyring
         pushd archlinux-keyring
-          wget https://archlinux.org/packages/core/any/archlinux-keyring/download -O /tmp/archlinux-keyring.tar.zst
-          sleep 5
-          tar --use-compress-program=unzstd --strip-components=4 --wildcards -xvf /tmp/archlinux-keyring.tar.zst usr/share/pacman/keyrings/*
-          sudo install -m0644 archlinux.gpg /usr/share/pacman/keyrings/
-          sudo install -m0644 archlinux-trusted /usr/share/pacman/keyrings/
-          sudo install -m0644 archlinux-revoked /usr/share/pacman/keyrings/
+        for mirror in "${mirrors[@]}"; do
+            for ((i=1; i<=max_retries; i++)); do
+                echo "Tentando baixar de $mirror (Tentativa $i de $max_retries)"
+                if wget -r -l1 -nd -A 'archlinux-keyring-*.pkg.tar.zst' "$mirror" -P /tmp/; then
+                    echo "Download bem-sucedido de $mirror"
+                    success=true
+                    break 2 # Sai dos dois loops
+                else
+                    echo "Falha no download de $mirror. Tentando novamente..."
+                fi
+            done
+        done
+
+        if [ "$success" = true ]; then
+            latest_pkg=$(ls -Art /tmp/archlinux-keyring-*.pkg.tar.zst | tail -n 1)
+            tar --use-compress-program=unzstd --strip-components=4 --wildcards -xvf "$latest_pkg" usr/share/pacman/keyrings/*
+            sudo install -m0644 archlinux.gpg /usr/share/pacman/keyrings/
+            sudo install -m0644 archlinux-trusted /usr/share/pacman/keyrings/
+            sudo install -m0644 archlinux-revoked /usr/share/pacman/keyrings/
+        else
+            echo "Falha ao baixar o pacote archlinux-keyring de todos os espelhos."
+            # Implemente o mecanismo de contingência aqui
+        fi
         popd
         sudo rm -r archlinux-keyring
+        sudo rm -f /tmp/archlinux-keyring-*.pkg.tar.zst
+
         
     - id: pull-keys
       shell: bash
