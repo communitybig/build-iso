@@ -545,7 +545,7 @@ runs:
         sudo sed -i "s/label=.*/label=biglinux_${{ inputs.release-tag }}.iso/" iso-profiles/biglinux/$EDITION/profile.conf
         
         
-        sudo rm -r iso-profiles/biglinux-make-iso-profiles
+        sudo rm -r iso-profiles/custom-profiles
         
         echo $KERNEL
         echo $EDITION
