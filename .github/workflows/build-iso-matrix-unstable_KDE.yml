@@ -42,7 +42,7 @@ jobs:
         EDITION: [kde] # Define a edição
         MANJAROBRANCH: [unstable] # Define a branch do Manjaro (stable, testing ou unstable)
         BIGBRANCH: [testing] # Define a branch do Biglinux (stable ou testing)
-        KERNEL: [atualLts] # Define a versão do kernel (atualLts, latest)
+        KERNEL: [latest] # Define a versão do kernel (atualLts, latest)
         
     steps:
       - name: Build and Upload GitHub
