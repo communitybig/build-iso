@@ -159,7 +159,7 @@ runs:
           sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
         popd
         sudo rm -r pacman
-        
+
     - id: install-keyrings
       shell: bash
       run: |
@@ -192,6 +192,7 @@ runs:
           sudo install -m0644 archlinux-revoked /usr/share/pacman/keyrings/
         popd
         sudo rm -r archlinux-keyring
+
         
     - id: pull-keys
       shell: bash
@@ -544,7 +545,7 @@ runs:
         sudo sed -i "s/label=.*/label=biglinux_${{ inputs.release-tag }}.iso/" iso-profiles/biglinux/$EDITION/profile.conf
         
         
-        sudo rm -r iso-profiles/biglinux-make-iso-profiles
+        sudo rm -r iso-profiles/custom-profiles
         
         echo $KERNEL
         echo $EDITION
