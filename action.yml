@@ -417,7 +417,7 @@ runs:
                 Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
 
                 # Add the kde-unstable repository between [core] and [extra]
-                sudo sed -i '/\[core\]/a [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
+                sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorcdn\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
             fi
 
             # Add the biglinux-stable repository
