@@ -382,6 +382,54 @@ runs:
 
         # Disable pxe boot
         #sudo sed -i "s|miso_pxe_common miso_pxe_http miso_pxe_nbd miso_pxe_nfs||g" /usr/share/manjaro-tools/mkinitcpio.conf
+
+        # Function to add repositories
+        add_repository() {
+            local arquivo_conf=$1
+
+            # Add the biglinux-keyring repository if not present
+            if [ -z "$(grep biglinux-keyring $arquivo_conf)" ]; then
+                sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $arquivo_conf
+            fi
+
+            # Add the biglinux-update-stable repository
+            if [ -z "$(grep biglinux-update-stable $arquivo_conf)" ]; then
+                sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $arquivo_conf
+                sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' $arquivo_conf
+                sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' $arquivo_conf
+                sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $arquivo_conf
+            fi
+
+            # Handle "testing" case
+            if [ "${{ inputs.bigbranch }}" = "testing" ]; then
+                echo '
+                [biglinux-testing]
+                SigLevel = PackageRequired
+                Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+            fi
+
+            # Handle "unstable" case
+            if [ "${{ inputs.bigbranch }}" = "unstable" ]; then
+                # Add the biglinux-testing repository
+                echo '
+                [biglinux-testing]
+                SigLevel = PackageRequired
+                Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+
+                # Add the kde-unstable repository between [core] and [extra]
+                sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorcdn\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
+            fi
+
+            # Add the biglinux-stable repository
+            echo '
+            [biglinux-stable]
+            SigLevel = PackageRequired
+            Server = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a $arquivo_conf
+        }
+
+        # Apply changes to both configuration
+        add_repository "/usr/share/manjaro-tools/pacman-default.conf"
+        add_repository "/usr/share/manjaro-tools/pacman-multilib.conf"
         
         # # Disable remove pkgs cache
         sudo sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|'g /usr/lib/manjaro-tools/util-iso-image.sh
