@@ -126,39 +126,36 @@ runs:
         sudo wget https://raw.githubusercontent.com/biglinux/disable-fsync/main/disable-fsync/usr/lib/disable-fsync.so -O /usr/lib/disable-fsync.so
         echo "/usr/lib/disable-fsync.so" | sudo tee -a /etc/ld.so.preload
         sudo ldconfig
-        
+
     - id: install-pacman
-      shell: bash
-      env:
-        PACMAN_VERSION: 6.0.2
-      run: |
-        echo "### install-pacman ###"
-        sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
-        pushd pacman
-          # sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
-          sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/pacman/pacman-v${PACMAN_VERSION}.tar.gz
-          # sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
-          sudo tar -xvzf pacman-v${PACMAN_VERSION}.tar.gz
-          # pushd pacman-${PACMAN_VERSION}
-          pushd pacman-v${PACMAN_VERSION}
-            sudo patch -p1 -i ../pacman-sync-first-option.patch
-            sudo meson --prefix=/usr \
-                      --buildtype=plain \
-                      -Ddoc=disabled \
-                      -Ddoxygen=enabled \
-                      -Dscriptlet-shell=/usr/bin/bash \
-                      -Dldconfig=/usr/bin/ldconfig \
-                      build
-            sudo meson compile -C build
-            sudo meson install -C build
-          popd
-          sudo install -m644 pacman.conf /etc/pacman.conf
-          sudo install -m644 makepkg.conf /etc/
-          sudo mkdir -p /etc/pacman.d
-          # sudo touch /etc/pacman.d/mirrorlist
-          sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
+    shell: bash
+    run: |
+      echo "### install-pacman ###"
+      sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
+      pushd pacman
+        # Find the latest stable version of pacman
+        PACMAN_VERSION=$(curl -s https://sources.archlinux.org/sources/packages/ | grep -oP 'pacman-\K[0-9.]+(?=-[0-9]+\.src\.tar\.gz)' | sort -V | tail -n1)
+        echo "Downloading pacman version $PACMAN_VERSION"
+        sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
+        sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
+        pushd pacman-${PACMAN_VERSION}
+          sudo patch -p1 -i ../pacman-sync-first-option.patch
+          sudo meson --prefix=/usr \
+                    --buildtype=plain \
+                    -Ddoc=disabled \
+                    -Ddoxygen=enabled \
+                    -Dscriptlet-shell=/usr/bin/bash \
+                    -Dldconfig=/usr/bin/ldconfig \
+                    build
+          sudo meson compile -C build
+          sudo meson install -C build
         popd
-        sudo rm -r pacman
+        sudo install -m644 pacman.conf /etc/pacman.conf
+        sudo install -m644 makepkg.conf /etc/
+        sudo mkdir -p /etc/pacman.d
+        sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
+      popd
+      sudo rm -r pacman
 
     - id: install-keyrings
       shell: bash
@@ -192,7 +189,6 @@ runs:
           sudo install -m0644 archlinux-revoked /usr/share/pacman/keyrings/
         popd
         sudo rm -r archlinux-keyring
-
         
     - id: pull-keys
       shell: bash
@@ -206,22 +202,21 @@ runs:
         
     - id: install-arch-install-scripts
       shell: bash
-      env:
-        VERSION: "27"
       run: |
         echo "### install-arch-install-scripts ###"
-        # sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
-        sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/arch-install-scripts/arch-install-scripts-${VERSION}.tar.gz -O arch-install-scripts.tar.gz
+        # Find the latest stable version of arch-install-scripts
+        VERSION=$(curl -s https://api.github.com/repos/archlinux/arch-install-scripts/tags | grep -oP '"name": "\Kv[0-9.]+(?=")' | sort -V | tail -n1 | cut -c 2-)
+        echo "Downloading arch-install-scripts version $VERSION"
+        sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
         sudo tar -xvf arch-install-scripts.tar.gz
         sudo make -C arch-install-scripts-${VERSION}
         sudo make -C arch-install-scripts-${VERSION} check
         sudo make -C arch-install-scripts-${VERSION} PREFIX=/usr install
         
-        #sudo wget https://gitlab.manjaro.org/applications/pacman-mirrors/-/raw/v4.19x-stable/conf/pacman-mirrors.conf -O /etc/pacman-mirrors.conf
         sudo touch /etc/pacman-mirrors.conf
         
         sudo rm arch-install-scripts.tar.gz
-        sudo rm -r arch-install-scripts-${VERSION}
+        sudo rm -r arch-install-scripts-${VERSION}        
         
     - id: install-calamares-tools
       shell: bash
@@ -238,19 +233,15 @@ runs:
         
     - id: install-mkinitcpio
       shell: bash
-      env:
-        VERSION: "32"
       run: |
         echo "### install-mkinitcpio ###"
-        # sudo wget https://gitlab.archlinux.org/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
-        sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/mkinitcpio/mkinitcpio-v${VERSION}.tar.gz
-        sudo tar -xf mkinitcpio-v${VERSION}.tar.gz
+        # Find the latest stable version of mkinitcpio
+        VERSION=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/tags | grep -oP 'v\K[0-9.]+(?=")' | sort -V | tail -n1)
+        echo "Baixando mkinitcpio versão $VERSION"
+        sudo wget https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
+        sudo tar -xvf mkinitcpio-v${VERSION}.tar.gz
         sudo make -C mkinitcpio-v${VERSION} install
-        # sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/mkinitcpio/mkinitcpio-${VERSION}.tar.gz
-        # sudo tar -xf mkinitcpio-${VERSION}.tar.gz
-        # sudo make -C mkinitcpio-${VERSION} install
         sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook
-        
         sudo rm mkinitcpio-v${VERSION}.tar.gz
         sudo rm -r mkinitcpio-v${VERSION}
         
