@@ -128,34 +128,34 @@ runs:
         sudo ldconfig
 
     - id: install-pacman
-    shell: bash
-    run: |
-      echo "### install-pacman ###"
-      sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
-      pushd pacman
-        # Find the latest stable version of pacman
-        PACMAN_VERSION=$(curl -s https://sources.archlinux.org/sources/packages/ | grep -oP 'pacman-\K[0-9.]+(?=-[0-9]+\.src\.tar\.gz)' | sort -V | tail -n1)
-        echo "Downloading pacman version $PACMAN_VERSION"
-        sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
-        sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
-        pushd pacman-${PACMAN_VERSION}
-          sudo patch -p1 -i ../pacman-sync-first-option.patch
-          sudo meson --prefix=/usr \
-                    --buildtype=plain \
-                    -Ddoc=disabled \
-                    -Ddoxygen=enabled \
-                    -Dscriptlet-shell=/usr/bin/bash \
-                    -Dldconfig=/usr/bin/ldconfig \
-                    build
-          sudo meson compile -C build
-          sudo meson install -C build
+      shell: bash
+      run: |
+        echo "### install-pacman ###"
+        sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
+        pushd pacman
+          # Find the latest stable version of pacman
+          PACMAN_VERSION=$(curl -s https://sources.archlinux.org/sources/packages/ | grep -oP 'pacman-\K[0-9.]+(?=-[0-9]+\.src\.tar\.gz)' | sort -V | tail -n1)
+          echo "Downloading pacman version $PACMAN_VERSION"
+          sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
+          sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
+          pushd pacman-${PACMAN_VERSION}
+            sudo patch -p1 -i ../pacman-sync-first-option.patch
+            sudo meson --prefix=/usr \
+                      --buildtype=plain \
+                      -Ddoc=disabled \
+                      -Ddoxygen=enabled \
+                      -Dscriptlet-shell=/usr/bin/bash \
+                      -Dldconfig=/usr/bin/ldconfig \
+                      build
+            sudo meson compile -C build
+            sudo meson install -C build
+          popd
+          sudo install -m644 pacman.conf /etc/pacman.conf
+          sudo install -m644 makepkg.conf /etc/
+          sudo mkdir -p /etc/pacman.d
+          sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
         popd
-        sudo install -m644 pacman.conf /etc/pacman.conf
-        sudo install -m644 makepkg.conf /etc/
-        sudo mkdir -p /etc/pacman.d
-        sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
-      popd
-      sudo rm -r pacman
+        sudo rm -r pacman
 
     - id: install-keyrings
       shell: bash
