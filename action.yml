@@ -400,7 +400,7 @@ runs:
             fi
 
             # Handle "unstable" case
-            if [ "${{ inputs.bigbranch }}" = "unstable" ]; then
+            if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
                 # Add the biglinux-testing repository
                 echo '
                 [biglinux-testing]
@@ -433,9 +433,8 @@ runs:
           sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         fi
         
-        #change iso-profiles directory
-        # sudo sed -i 's/iso-profiles\/manjaro/iso-profiles\/biglinux/' /usr/lib/manjaro-tools/util.sh
-        # sudo sed -i 's|&& \[\[ -d ${_workdir}/iso-profiles/community \]\]||' /usr/lib/manjaro-tools/util.sh
+        # Pint mirrorlist
+        cat /etc/pacman.d/mirrorlist
     
     - id: checkout-iso-profiles
       shell: bash
