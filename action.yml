@@ -391,6 +391,17 @@ runs:
                 sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $arquivo_conf
             fi
 
+            # Handle "testing" and "unstable" cases
+            case "${{ inputs.manjarobranch }}" in
+                "testing"|"unstable")
+                    branch="${{ inputs.manjarobranch }}"
+                    servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
+                    for server in "${servers[@]}"; do
+                        echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a $arquivo_conf
+                    done
+                    ;;
+            esac
+
             # Handle "testing" case
             if [ "${{ inputs.bigbranch }}" = "testing" ]; then
                 echo '
@@ -417,7 +428,6 @@ runs:
             SigLevel = PackageRequired
             Server = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a $arquivo_conf
         }
-
         # Apply changes to both configuration
         add_repository "/usr/share/manjaro-tools/pacman-default.conf"
         add_repository "/usr/share/manjaro-tools/pacman-multilib.conf"
