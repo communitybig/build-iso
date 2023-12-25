@@ -394,16 +394,13 @@ runs:
             # Handle Manjaro branch cases
             branch="${{ inputs.manjarobranch }}"
             case "$branch" in
-                "stable"|"testing"|"unstable")
-                    # Clear existing Manjaro server entries
-#                     sudo sed -i '/Server = https:\/\/.*\/manjaro\//d' $arquivo_conf
-
-                    # Add new Manjaro server entries
-                    servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
-                    for server in "${servers[@]}"; do
-                        echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a $arquivo_conf
-                    done
-                    ;;
+              "stable"|"testing"|"unstable")
+              # Add new Manjaro server entries
+                servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
+                for server in "${servers[@]}"; do
+                  echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a $arquivo_conf
+                done
+                ;;
             esac
 
             # Add the biglinux-stable repository
