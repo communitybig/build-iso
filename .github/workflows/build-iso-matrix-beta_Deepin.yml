@@ -1,5 +1,5 @@
 # Nome do workflow
-name: Biglinux Build ISO - Beta Deepin
+name: Biglinux - Beta Deepin
 
 # Gatilhos para o workflow
 on:
