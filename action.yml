@@ -403,22 +403,41 @@ runs:
                 ;;
             esac
 
+            # Add the test repository if it is biglinux=testing and manjaro=stable
+            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
+              echo '
+              [biglinux-testing]
+              SigLevel = PackageRequired
+              Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+            fi
+            
+            # Add the test repository if it is biglinux=testing and manjaro=testing
+            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
+              echo '
+              [biglinux-testing]
+              SigLevel = PackageRequired
+              Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+            fi
+
+            # Add the test repository if it is biglinux=testing and manjaro=unstable
+            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+              # Add the biglinux-testing repository
+              echo '
+              [biglinux-testing]
+              SigLevel = PackageRequired
+              Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+
+              # Add the kde-unstable repository if edition is kde-unstable
+              if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
+                  sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
+              fi
+            fi
+            
             # Add the biglinux-stable repository
             echo '
             [biglinux-stable]
             SigLevel = PackageRequired
             Server = https://devdevdev.biglinux.com.br/stable/$arch' | sudo tee -a $arquivo_conf
-
-            # Add the biglinux-testing repository
-            echo '
-            [biglinux-testing]
-            SigLevel = PackageRequired
-            Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-
-            # Add the kde-unstable repository if edition is kde-unstable
-            if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
-                sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
-            fi
         }
 
         # Apply changes to both configuration
