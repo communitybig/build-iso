@@ -469,14 +469,6 @@ runs:
         echo ""
         echo "Print pacman-multilib"
         cat /usr/share/manjaro-tools/pacman-multilib.conf
-        
-    
-    - name: Install plasma-framework for KDE-Unstable
-      if: inputs.edition == 'kde-unstable'
-      shell: bash
-      run: |
-        echo "Installing plasma-framework from kde-unstable repository"
-        sudo pacman -Syyu --needed plasma-framework --overwrite '*'
     
     - id: checkout-iso-profiles
       shell: bash
@@ -576,6 +568,8 @@ runs:
             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/user-repos.conf
             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
+            echo "Installing plasma-framework from kde-unstable repository"
+            sudo pacman -Syu --needed plasma-framework --overwrite '*'
           fi
         fi
         
