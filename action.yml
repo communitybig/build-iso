@@ -373,7 +373,11 @@ runs:
 
         # Disable pxe boot
         #sudo sed -i "s|miso_pxe_common miso_pxe_http miso_pxe_nbd miso_pxe_nfs||g" /usr/share/manjaro-tools/mkinitcpio.conf
-
+        sleep 10
+        echo "inputs.manjarobranch = ${{ inputs.manjarobranch }}"
+        echo "inputs.bigbranch = ${{ inputs.bigbranch }}"
+        echo "inputs.edition = ${{ inputs.edition }}"
+        
         # Function to add repositories
         add_repository() {
             local arquivo_conf=$1
@@ -430,6 +434,7 @@ runs:
               # Add the kde-unstable repository if edition is kde-unstable
               if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
                   sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
+                  echo "Foi executado o kde-unstable"
               fi
             fi
             
