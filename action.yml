@@ -476,7 +476,7 @@ runs:
       shell: bash
       run: |
         echo "Installing plasma-framework from kde-unstable repository"
-        sudo pacman -Syu --needed plasma-framework --overwrite '*'
+        sudo pacman -Syyu --needed plasma-framework --overwrite '*'
     
     - id: checkout-iso-profiles
       shell: bash
