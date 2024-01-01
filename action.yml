@@ -461,7 +461,15 @@ runs:
         fi
         
         # Pint mirrorlist
+        echo "print mirrorlist..."
         cat /etc/pacman.d/mirrorlist
+        echo ""
+        echo "Print pacman-default"
+        cat /usr/share/manjaro-tools/pacman-default.conf
+        echo ""
+        echo "Print pacman-multilib"
+        cat /usr/share/manjaro-tools/pacman-multilib.conf
+        
     
     - name: Install plasma-framework for KDE-Unstable
       if: inputs.edition == 'kde-unstable'
