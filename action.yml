@@ -568,8 +568,6 @@ runs:
             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/user-repos.conf
             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
-            echo "Installing plasma-framework from kde-unstable repository"
-            sudo pacman -Syu --needed plasma-framework --overwrite '*'
           fi
         fi
         
