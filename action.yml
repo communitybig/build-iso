@@ -458,6 +458,13 @@ runs:
         # Pint mirrorlist
         cat /etc/pacman.d/mirrorlist
     
+    - name: Install plasma-framework for KDE-Unstable
+      if: inputs.edition == 'kde-unstable'
+      shell: bash
+      run: |
+        echo "Installing plasma-framework from kde-unstable repository"
+        sudo pacman -Syu --needed plasma-framework --overwrite '*'
+    
     - id: checkout-iso-profiles
       shell: bash
       env:

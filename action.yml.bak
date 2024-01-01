@@ -126,21 +126,19 @@ runs:
         sudo wget https://raw.githubusercontent.com/biglinux/disable-fsync/main/disable-fsync/usr/lib/disable-fsync.so -O /usr/lib/disable-fsync.so
         echo "/usr/lib/disable-fsync.so" | sudo tee -a /etc/ld.so.preload
         sudo ldconfig
-        
+
     - id: install-pacman
       shell: bash
-      env:
-        PACMAN_VERSION: 6.0.2
       run: |
         echo "### install-pacman ###"
         sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
         pushd pacman
-          # sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
-          sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/pacman/pacman-v${PACMAN_VERSION}.tar.gz
-          # sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
-          sudo tar -xvzf pacman-v${PACMAN_VERSION}.tar.gz
-          # pushd pacman-${PACMAN_VERSION}
-          pushd pacman-v${PACMAN_VERSION}
+          # Find the latest stable version of pacman
+          PACMAN_VERSION=$(curl -s https://sources.archlinux.org/sources/packages/ | grep -oP 'pacman-\K[0-9.]+(?=-[0-9]+\.src\.tar\.gz)' | sort -V | tail -n1)
+          echo "Downloading pacman version $PACMAN_VERSION"
+          sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
+          sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
+          pushd pacman-${PACMAN_VERSION}
             sudo patch -p1 -i ../pacman-sync-first-option.patch
             sudo meson --prefix=/usr \
                       --buildtype=plain \
@@ -155,7 +153,6 @@ runs:
           sudo install -m644 pacman.conf /etc/pacman.conf
           sudo install -m644 makepkg.conf /etc/
           sudo mkdir -p /etc/pacman.d
-          # sudo touch /etc/pacman.d/mirrorlist
           sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
         popd
         sudo rm -r pacman
@@ -192,7 +189,6 @@ runs:
           sudo install -m0644 archlinux-revoked /usr/share/pacman/keyrings/
         popd
         sudo rm -r archlinux-keyring
-
         
     - id: pull-keys
       shell: bash
@@ -206,22 +202,21 @@ runs:
         
     - id: install-arch-install-scripts
       shell: bash
-      env:
-        VERSION: "27"
       run: |
         echo "### install-arch-install-scripts ###"
-        # sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
-        sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/arch-install-scripts/arch-install-scripts-${VERSION}.tar.gz -O arch-install-scripts.tar.gz
+        # Find the latest stable version of arch-install-scripts
+        VERSION=$(curl -s https://api.github.com/repos/archlinux/arch-install-scripts/tags | grep -oP '"name": "\Kv[0-9.]+(?=")' | sort -V | tail -n1 | cut -c 2-)
+        echo "Downloading arch-install-scripts version $VERSION"
+        sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
         sudo tar -xvf arch-install-scripts.tar.gz
         sudo make -C arch-install-scripts-${VERSION}
         sudo make -C arch-install-scripts-${VERSION} check
         sudo make -C arch-install-scripts-${VERSION} PREFIX=/usr install
         
-        #sudo wget https://gitlab.manjaro.org/applications/pacman-mirrors/-/raw/v4.19x-stable/conf/pacman-mirrors.conf -O /etc/pacman-mirrors.conf
         sudo touch /etc/pacman-mirrors.conf
         
         sudo rm arch-install-scripts.tar.gz
-        sudo rm -r arch-install-scripts-${VERSION}
+        sudo rm -r arch-install-scripts-${VERSION}        
         
     - id: install-calamares-tools
       shell: bash
@@ -238,19 +233,15 @@ runs:
         
     - id: install-mkinitcpio
       shell: bash
-      env:
-        VERSION: "32"
       run: |
         echo "### install-mkinitcpio ###"
-        # sudo wget https://gitlab.archlinux.org/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
-        sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/mkinitcpio/mkinitcpio-v${VERSION}.tar.gz
-        sudo tar -xf mkinitcpio-v${VERSION}.tar.gz
+        # Find the latest stable version of mkinitcpio
+        VERSION=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/tags | grep -oP 'v\K[0-9.]+(?=")' | sort -V | tail -n1)
+        echo "Baixando mkinitcpio versão $VERSION"
+        sudo wget https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
+        sudo tar -xvf mkinitcpio-v${VERSION}.tar.gz
         sudo make -C mkinitcpio-v${VERSION} install
-        # sudo wget https://github.com/BigLinux-Package-Build/build-iso/raw/main/mkinitcpio/mkinitcpio-${VERSION}.tar.gz
-        # sudo tar -xf mkinitcpio-${VERSION}.tar.gz
-        # sudo make -C mkinitcpio-${VERSION} install
         sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook
-        
         sudo rm mkinitcpio-v${VERSION}.tar.gz
         sudo rm -r mkinitcpio-v${VERSION}
         
@@ -391,7 +382,7 @@ runs:
             if [ -z "$(grep biglinux-keyring $arquivo_conf)" ]; then
                 sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $arquivo_conf
             fi
-
+            
             # Add the biglinux-update-stable repository
             if [ -z "$(grep biglinux-update-stable $arquivo_conf)" ]; then
                 sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $arquivo_conf
@@ -400,26 +391,48 @@ runs:
                 sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $arquivo_conf
             fi
 
-            # Handle "testing" case
-            if [ "${{ inputs.bigbranch }}" = "testing" ]; then
-                echo '
-                [biglinux-testing]
-                SigLevel = PackageRequired
-                Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+            # Handle Manjaro branch cases
+            branch="${{ inputs.manjarobranch }}"
+            case "$branch" in
+              "stable"|"testing"|"unstable")
+              # Add new Manjaro server entries
+                servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
+                for server in "${servers[@]}"; do
+                  echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a $arquivo_conf
+                done
+                ;;
+            esac
+
+            # Add the test repository if it is biglinux=testing and manjaro=stable
+            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
+              echo '
+              [biglinux-testing]
+              SigLevel = PackageRequired
+              Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+            fi
+            
+            # Add the test repository if it is biglinux=testing and manjaro=testing
+            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
+              echo '
+              [biglinux-testing]
+              SigLevel = PackageRequired
+              Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
             fi
 
-            # Handle "unstable" case
-            if [ "${{ inputs.bigbranch }}" = "unstable" ]; then
-                # Add the biglinux-testing repository
-                echo '
-                [biglinux-testing]
-                SigLevel = PackageRequired
-                Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
+            # Add the test repository if it is biglinux=testing and manjaro=unstable
+            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+              # Add the biglinux-testing repository
+              echo '
+              [biglinux-testing]
+              SigLevel = PackageRequired
+              Server = https://devdevdev.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
 
-                # Add the kde-unstable repository between [core] and [extra]
-                sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorcdn\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
+              # Add the kde-unstable repository if edition is kde-unstable
+              if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
+                  sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
+              fi
             fi
-
+            
             # Add the biglinux-stable repository
             echo '
             [biglinux-stable]
@@ -442,9 +455,8 @@ runs:
           sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         fi
         
-        #change iso-profiles directory
-        # sudo sed -i 's/iso-profiles\/manjaro/iso-profiles\/biglinux/' /usr/lib/manjaro-tools/util.sh
-        # sudo sed -i 's|&& \[\[ -d ${_workdir}/iso-profiles/community \]\]||' /usr/lib/manjaro-tools/util.sh
+        # Pint mirrorlist
+        cat /etc/pacman.d/mirrorlist
     
     - id: checkout-iso-profiles
       shell: bash
@@ -518,8 +530,8 @@ runs:
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
         
-        # Testing/Unstable
-        if [ "$BIGBRANCH" = "testing" ] || [ "$BIGBRANCH" = "unstable" ];then
+        # Testing
+        if [ "$BIGBRANCH" = "testing" ];then
           #add repo testing
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
@@ -538,6 +550,13 @@ runs:
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
           
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
+          
+          # Add the kde-unstable repository if edition is kde-unstable        
+          if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
+            sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/user-repos.conf
+            sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
+            sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
+          fi
         fi
         
         #Build Release and Unix Time
