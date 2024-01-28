@@ -1,5 +1,5 @@
 # Nome do workflow
-name: Biglinux - Beta XFCE
+name: Biglinux Stable/Teting - Beta XFCE
 
 # Gatilhos para o workflow
 on:
