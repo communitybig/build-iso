@@ -1,5 +1,5 @@
 # Nome do workflow
-name: Biglinux Testing/Stable - Beta Gnome
+name: Biglinux Stable/Testing - Beta Gnome
 
 # Gatilhos para o workflow
 on:
