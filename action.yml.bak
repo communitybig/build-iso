@@ -134,7 +134,7 @@ runs:
         sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
         pushd pacman
           # Find the latest stable version of pacman
-          PACMAN_VERSION=$(curl -s https://sources.archlinux.org/sources/packages/ | grep -oP 'pacman-\K[0-9.]+(?=-[0-9]+\.src\.tar\.gz)' | sort -V | tail -n1)
+          PACMAN_VERSION=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.pkgver')
           echo "Downloading pacman version $PACMAN_VERSION"
           sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
           sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
@@ -366,7 +366,7 @@ runs:
 
         # plymouth
         # Add video modules to use plymouth in live mode
-        sudo sed -i "s|loop dm-snapshot|loop dm-snapshot amdgpu radeon i915 nouveau mgag200 bochs virtio-gpu qxl vmwgfx cirrus vmwgfx vboxvideo|g" /usr/share/manjaro-tools/mkinitcpio.conf
+        # sudo sed -i "s|loop dm-snapshot|loop dm-snapshot amdgpu radeon i915 nouveau mgag200 bochs virtio-gpu qxl vmwgfx cirrus vmwgfx vboxvideo|g" /usr/share/manjaro-tools/mkinitcpio.conf
 
         # Enable plymouth and kms
         sudo sed -i "s|keyboard keymap|keyboard keymap kms plymouth|g" /usr/share/manjaro-tools/mkinitcpio.conf
