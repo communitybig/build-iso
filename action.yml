@@ -430,12 +430,6 @@ runs:
               [biglinux-testing]
               SigLevel = PackageRequired
               Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-
-              # Add the kde-unstable repository if edition is kde-unstable
-#               if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
-#                   sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' $arquivo_conf
-#                   echo "Foi executado o kde-unstable"
-#               fi
             fi
             
             # Add the biglinux-stable repository
@@ -562,13 +556,6 @@ runs:
           sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
           
           echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
-          
-          # Add the kde-unstable repository if edition is kde-unstable        
-#           if [ "${{ inputs.edition }}" = "kde-unstable" ]; then
-#             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/user-repos.conf
-#             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
-#             sudo sed -i '/^\[extra\]$/i [kde-unstable]\nSigLevel = PackageRequired\nInclude = /etc/pacman.d/mirrorlist\n' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
-#           fi
         fi
         
         #Build Release and Unix Time
