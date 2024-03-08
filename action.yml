@@ -248,21 +248,22 @@ runs:
         # Find the latest stable version of arch-install-scripts
         VERSION=$(curl -s https://api.github.com/repos/archlinux/arch-install-scripts/tags | grep -oP '"name": "\Kv[0-9.]+(?=")' | sort -V | tail -n1 | cut -c 2-)
         echo "Downloading arch-install-scripts version $VERSION"
-        sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
-        SHA256SUMS=($(curl -s https://github.com/archlinux/arch-install-scripts/releases/download/v${VERSION}/sha256sums.txt | grep "arch-install-scripts-${VERSION}.tar.gz" | cut -d' ' -f1))
+        sudo wget https://gitlab.archlinux.org/archlinux/arch-install-scripts/-/archive/v${VERSION}/arch-install-scripts-v${VERSION}.tar.gz
+        SHA256SUMS=($(curl -s https://gitlab.archlinux.org/archlinux/arch-install-scripts/-/commits/v${VERSION} | grep 'commit' | awk '{print $2}'))
         for sum in "${SHA256SUMS[@]}"; do
-          echo "${sum} arch-install-scripts.tar.gz" | sha256sum --check && break
+          echo "${sum} arch-install-scripts-v${VERSION}.tar.gz" | sha256sum --check && break
         done || exit 1
 
-        sudo tar -xvf arch-install-scripts.tar.gz
-        sudo make -C arch-install-scripts-${VERSION} || exit 1
-        sudo make -C arch-install-scripts-${VERSION} check || exit 1
-        sudo make -C arch-install-scripts-${VERSION} PREFIX=/usr install || exit 1
+        sudo tar -xvf arch-install-scripts-v${VERSION}.tar.gz
+        sudo make -C arch-install-scripts-v${VERSION} || exit 1
+        sudo make -C arch-install-scripts-v${VERSION} check || exit 1
+        sudo make -C arch-install-scripts-v${VERSION} PREFIX=/usr install || exit 1
 
         sudo touch /etc/pacman-mirrors.conf
 
-        sudo rm arch-install-scripts.tar.gz
-        sudo rm -r arch-install-scripts-${VERSION}
+        sudo rm arch-install-scripts-v${VERSION}.tar.gz
+        sudo rm -r arch-install-scripts-v${VERSION}
+
 
     - id: install-calamares-tools
       shell: bash
@@ -291,8 +292,10 @@ runs:
 
         # Download and verify the integrity of the archive
         sudo wget https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
-        SHA256SUM=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/commits/v${VERSION} | grep 'commit' | awk '{print $2}')
-        echo "${SHA256SUM} mkinitcpio-v${VERSION}.tar.gz" | sha256sum --check || exit 1
+        SHA256SUMS=($(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/commits/v${VERSION} | grep 'commit' | awk '{print $2}'))
+        for sum in "${SHA256SUMS[@]}"; do
+          echo "${sum} mkinitcpio-v${VERSION}.tar.gz" | sha256sum --check && break
+        done || exit 1
 
         # Extract and install
         sudo tar -xvf mkinitcpio-v${VERSION}.tar.gz
