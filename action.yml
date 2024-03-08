@@ -162,8 +162,11 @@ runs:
             PACMAN_VERSION=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.pkgver')
             echo "Downloading pacman version $PACMAN_VERSION"
             sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
-            SHA256SUM=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.sha256sum')
-            echo "${SHA256SUM} pacman-${PACMAN_VERSION}.tar.xz" | sha256sum --check || exit 1
+            SHA256SUMS=($(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.sha256sums[]'))
+            for sum in "${SHA256SUMS[@]}"; do
+              echo "${sum} pacman-${PACMAN_VERSION}.tar.xz" | sha256sum --check && break
+            done || exit 1
+
             sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
             pushd pacman-${PACMAN_VERSION}
               sudo patch -p1 -i ../pacman-sync-first-option.patch || exit 1
