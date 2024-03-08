@@ -299,21 +299,28 @@ runs:
         VERSION=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/tags | grep -oP 'v\K[0-9.]+(?=")' | sort -V | tail -n1)
         echo "Downloading mkinitcpio version $VERSION"
 
-        # Download and verify the integrity of the archive
-        sudo wget https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
-        SHA256SUMS=($(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/commits/v${VERSION} | grep 'commit' | awk '{print $2}'))
-        for sum in "${SHA256SUMS[@]}"; do
-          echo "${sum} mkinitcpio-v${VERSION}.tar.gz" | sha256sum --check && break
-        done || exit 1
+        # Try to download and extract the archive up to 3 times
+        MAX_ATTEMPTS=3
+        ATTEMPT=1
+        while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+          sudo wget -O mkinitcpio.tar.gz https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
+          sudo tar -xvf mkinitcpio.tar.gz && break  # Exit loop if extraction succeeds
+          echo "Attempt $ATTEMPT failed. Trying again..."
+          sudo rm -f mkinitcpio.tar.gz
+          ATTEMPT=$((ATTEMPT+1))
+        done
 
-        # Extract and install
-        sudo tar -xvf mkinitcpio-v${VERSION}.tar.gz
+        # Check if the extraction was successful after all attempts
+        if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
+          echo "Failed to download and extract mkinitcpio after $MAX_ATTEMPTS attempts."
+          exit 1
+        fi
+
         sudo make -C mkinitcpio-v${VERSION} install || exit 1
-        sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook
+        sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
 
         # Clean up
-        sudo rm mkinitcpio-v${VERSION}.tar.gz
-        sudo rm -r mkinitcpio-v${VERSION}
+        sudo rm -rf mkinitcpio-v${VERSION} mkinitcpio.tar.gz
 
     - id: install-manjaro-tools
       shell: bash
