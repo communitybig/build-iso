@@ -235,13 +235,28 @@ runs:
       shell: bash
       run: |
         echo "### install-mkinitcpio ###"
+
+        # Update package lists and system
+        sudo pacman -Syu --noconfirm
+
+        # Remove old versions of mkinitcpio
+        sudo pacman -R mkinitcpio --noconfirm
+
         # Find the latest stable version of mkinitcpio
         VERSION=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/tags | grep -oP 'v\K[0-9.]+(?=")' | sort -V | tail -n1)
-        echo "Baixando mkinitcpio versão $VERSION"
+        echo "Downloading mkinitcpio version $VERSION"
+
+        # Download and verify the integrity of the archive
         sudo wget https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/archive/v${VERSION}/mkinitcpio-v${VERSION}.tar.gz
+        SHA256SUM=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/commits/v${VERSION} | grep 'commit' | awk '{print $2}')
+        echo "${SHA256SUM} mkinitcpio-v${VERSION}.tar.gz" | sha256sum --check || exit 1
+
+        # Extract and install
         sudo tar -xvf mkinitcpio-v${VERSION}.tar.gz
-        sudo make -C mkinitcpio-v${VERSION} install
+        sudo make -C mkinitcpio-v${VERSION} install || exit 1
         sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook
+
+        # Clean up
         sudo rm mkinitcpio-v${VERSION}.tar.gz
         sudo rm -r mkinitcpio-v${VERSION}
         
