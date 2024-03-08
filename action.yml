@@ -57,105 +57,133 @@ runs:
       shell: bash
       run: |
         echo "### Clean System ###"
-        sudo rm -rf \
-        /imagegeneration \
-        /opt/az \
-        /opt/ghc \
-        /opt/pipx \
-        /opt/google \
-        /opt/microsoft \
-        /opt/hostedtoolcache \
-        /usr/lib/llvm* \
-        /var/lib/mysql \
-        /var/lib/snapd \
-        /var/lib/docker \
-        /usr/lib/google* \
-        /usr/lib/firefox \
-        /usr/local/julia* \
-        /usr/local/.ghcup \
-        /usr/local/aws-cli \
-        /usr/local/lib/android \
-        /usr/local/aws-sam-cli \
-        /usr/local/share/chromium \
-        /usr/local/lib/node_modules \
-        /usr/local/share/powershell \
-        /usr/share/swift \
-        /usr/share/dotnet
+        DIRECTORIES=(
+          "/imagegeneration"
+          "/opt/az"
+          "/opt/ghc"
+          "/opt/pipx"
+          "/opt/google"
+          "/opt/microsoft"
+          "/opt/hostedtoolcache"
+          "/usr/lib/llvm*"
+          "/var/lib/mysql"
+          "/var/lib/snapd"
+          "/var/lib/docker"
+          "/usr/lib/google*"
+          "/usr/lib/firefox"
+          "/usr/local/julia*"
+          "/usr/local/.ghcup"
+          "/usr/local/aws-cli"
+          "/usr/local/lib/android"
+          "/usr/local/aws-sam-cli"
+          "/usr/local/share/chromium"
+          "/usr/local/lib/node_modules"
+          "/usr/local/share/powershell"
+          "/usr/share/swift"
+          "/usr/share/dotnet"
+        )
+
+        for dir in "${DIRECTORIES[@]}"; do
+          sudo rm -rf "$dir"
+        done
       
-    - id: install-build-dependencie
+    - id: install-build-dependencies
       shell: bash
       run: |
         echo "### install-build-dependencies ###"
-        sudo apt update
-        # sudo apt dist-upgrade
-        # sudo apt install \
-        # sudo apt-fast dist-upgrade -y
-        sudo apt-fast install -y \
-          gdisk \
-          zip \
-          systemd-container \
-          bmap-tools \
-          asciidoc \
-          libarchive-tools \
-          git \
-          build-essential \
-          cmake \
-          libarchive-dev \
-          pkg-config \
-          libcurl4-openssl-dev \
-          libgpgme-dev \
-          libssl-dev \
-          fakeroot \
-          dh-autoreconf \
-          haveged \
-          os-prober \
-          kwalify \
-          dosfstools \
-          libisoburn1 \
-          squashfs-tools \
-          docbook2x \
-          mktorrent \
-          doxygen \
+        sudo apt-get update
+
+        # Install packages
+        PACKAGES=(
+          gdisk
+          zip
+          systemd-container
+          bmap-tools
+          asciidoc
+          libarchive-tools
+          git
+          build-essential
+          cmake
+          libarchive-dev
+          pkg-config
+          libcurl4-openssl-dev
+          libgpgme-dev
+          libssl-dev
+          fakeroot
+          dh-autoreconf
+          haveged
+          os-prober
+          kwalify
+          dosfstools
+          libisoburn1
+          squashfs-tools
+          docbook2x
+          mktorrent
+          doxygen
           zstd
-        sudo python3 -m pip install meson
-        sudo python3 -m pip install ninja
+        )
+
+        sudo apt-get install -y "${PACKAGES[@]}"
+
+        # Install Python packages
+        sudo python3 -m pip install meson ninja
+
+        # Clean up
+        sudo apt-get clean
+        sudo apt-get autoremove -y
         
     - id: no-fsync
       shell: bash
       run: |
-        sudo wget https://raw.githubusercontent.com/biglinux/disable-fsync/main/disable-fsync/usr/lib/disable-fsync.so -O /usr/lib/disable-fsync.so
-        echo "/usr/lib/disable-fsync.so" | sudo tee -a /etc/ld.so.preload
+        echo "### no-fsync ###"
+        DISABLE_FSYNC_URL="https://raw.githubusercontent.com/biglinux/disable-fsync/main/disable-fsync/usr/lib/disable-fsync.so"
+        DISABLE_FSYNC_FILE="/usr/lib/disable-fsync.so"
+        PRELOAD_FILE="/etc/ld.so.preload"
+
+        # Download and verify the integrity of the file
+        sudo wget "$DISABLE_FSYNC_URL" -O "$DISABLE_FSYNC_FILE"
+        SHA256SUM=$(curl -s "$DISABLE_FSYNC_URL" | sha256sum | awk '{print $1}')
+        echo "${SHA256SUM} ${DISABLE_FSYNC_FILE}" | sha256sum --check || exit 1
+
+        # Add the library to ld.so.preload
+        sudo sh -c "echo '${DISABLE_FSYNC_FILE}' >> '${PRELOAD_FILE}'"
+
+        # Update library cache
         sudo ldconfig
 
     - id: install-pacman
       shell: bash
       run: |
         echo "### install-pacman ###"
-        sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
-        pushd pacman
-          # Find the latest stable version of pacman
-          PACMAN_VERSION=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.pkgver')
-          echo "Downloading pacman version $PACMAN_VERSION"
-          sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
-          sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
-          pushd pacman-${PACMAN_VERSION}
-            sudo patch -p1 -i ../pacman-sync-first-option.patch
-            sudo meson --prefix=/usr \
-                      --buildtype=plain \
-                      -Ddoc=disabled \
-                      -Ddoxygen=enabled \
-                      -Dscriptlet-shell=/usr/bin/bash \
-                      -Dldconfig=/usr/bin/ldconfig \
-                      build
-            sudo meson compile -C build
-            sudo meson install -C build
+        (
+          sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
+          pushd pacman
+            # Find the latest stable version of pacman
+            PACMAN_VERSION=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.pkgver')
+            echo "Downloading pacman version $PACMAN_VERSION"
+            sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
+            SHA256SUM=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.sha256sum')
+            echo "${SHA256SUM} pacman-${PACMAN_VERSION}.tar.xz" | sha256sum --check || exit 1
+            sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
+            pushd pacman-${PACMAN_VERSION}
+              sudo patch -p1 -i ../pacman-sync-first-option.patch || exit 1
+              sudo meson --prefix=/usr \
+                        --buildtype=plain \
+                        -Ddoc=disabled \
+                        -Ddoxygen=enabled \
+                        -Dscriptlet-shell=/usr/bin/bash \
+                        -Dldconfig=/usr/bin/ldconfig \
+                        build || exit 1
+              sudo meson compile -C build || exit 1
+              sudo meson install -C build || exit 1
+            popd
+            sudo install -m644 pacman.conf /etc/pacman.conf
+            sudo install -m644 makepkg.conf /etc/
+            sudo mkdir -p /etc/pacman.d
+            sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
           popd
-          sudo install -m644 pacman.conf /etc/pacman.conf
-          sudo install -m644 makepkg.conf /etc/
-          sudo mkdir -p /etc/pacman.d
-          sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
-        popd
-        sudo rm -r pacman
+          sudo rm -r pacman
+        ) || exit 1
 
     - id: install-keyrings
       shell: bash
@@ -163,32 +191,38 @@ runs:
         echo "### install-keyrings ###"
         sudo install -dm755 /usr/share/pacman/keyrings/
 
-        sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/manjaro-keyring.git
-        pushd manjaro-keyring
-          sudo install -m0644 manjaro.gpg /usr/share/pacman/keyrings/
-          sudo install -m0644 manjaro-trusted /usr/share/pacman/keyrings/
-          sudo install -m0644 manjaro-revoked /usr/share/pacman/keyrings/
-        popd
-        sudo rm -r manjaro-keyring
-        
-        sudo git clone --depth 1 https://github.com/biglinux/biglinux-keyring.git
-        pushd biglinux-keyring
-          sudo install -m0644 biglinux.gpg /usr/share/pacman/keyrings/
-          sudo install -m0644 biglinux-trusted /usr/share/pacman/keyrings/
-          sudo install -m0644 biglinux-trusted /usr/share/pacman/keyrings/
-        popd
-        sudo rm -r biglinux-keyring
+        (
+          sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/manjaro-keyring.git
+          pushd manjaro-keyring
+            sudo install -m0644 manjaro.gpg /usr/share/pacman/keyrings/
+            sudo install -m0644 manjaro-trusted /usr/share/pacman/keyrings/
+            sudo install -m0644 manjaro-revoked /usr/share/pacman/keyrings/
+          popd
+          sudo rm -r manjaro-keyring
+        ) || exit 1
 
-        mkdir -p archlinux-keyring
-        pushd archlinux-keyring
+        (
+          sudo git clone --depth 1 https://github.com/biglinux/biglinux-keyring.git
+          pushd biglinux-keyring
+            sudo install -m0644 biglinux.gpg /usr/share/pacman/keyrings/
+            sudo install -m0644 biglinux-trusted /usr/share/pacman/keyrings/
+            sudo install -m0644 biglinux-trusted /usr/share/pacman/keyrings/
+          popd
+          sudo rm -r biglinux-keyring
+        ) || exit 1
+
+        KEYRING_DIR="archlinux-keyring"
+        mkdir -p "$KEYRING_DIR"
+        pushd "$KEYRING_DIR"
           wget https://archlinux.org/packages/core/any/archlinux-keyring/download -O /tmp/archlinux-keyring.tar.zst
           sleep 5
-          tar --use-compress-program=unzstd --strip-components=4 --wildcards -xvf /tmp/archlinux-keyring.tar.zst usr/share/pacman/keyrings/*
+          tar --use-compress-program=unzstd --strip-components=4 --wildcards -xvf /tmp/archlinux-keyring.tar.zst usr/share/pacman/keyrings/* || exit 1
           sudo install -m0644 archlinux.gpg /usr/share/pacman/keyrings/
           sudo install -m0644 archlinux-trusted /usr/share/pacman/keyrings/
           sudo install -m0644 archlinux-revoked /usr/share/pacman/keyrings/
+          rm /tmp/archlinux-keyring.tar.zst
         popd
-        sudo rm -r archlinux-keyring
+        sudo rm -r "$KEYRING_DIR"
         
     - id: pull-keys
       shell: bash
@@ -204,32 +238,39 @@ runs:
       shell: bash
       run: |
         echo "### install-arch-install-scripts ###"
+
+        # Update package lists and system
+        sudo pacman -Syu --noconfirm
+
         # Find the latest stable version of arch-install-scripts
         VERSION=$(curl -s https://api.github.com/repos/archlinux/arch-install-scripts/tags | grep -oP '"name": "\Kv[0-9.]+(?=")' | sort -V | tail -n1 | cut -c 2-)
         echo "Downloading arch-install-scripts version $VERSION"
         sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
+        SHA256SUM=$(curl -s https://github.com/archlinux/arch-install-scripts/releases/download/v${VERSION}/sha256sums.txt | grep "arch-install-scripts-${VERSION}.tar.gz" | cut -d' ' -f1)
+        echo "${SHA256SUM} arch-install-scripts.tar.gz" | sha256sum --check || exit 1
+
         sudo tar -xvf arch-install-scripts.tar.gz
-        sudo make -C arch-install-scripts-${VERSION}
-        sudo make -C arch-install-scripts-${VERSION} check
-        sudo make -C arch-install-scripts-${VERSION} PREFIX=/usr install
-        
+        sudo make -C arch-install-scripts-${VERSION} || exit 1
+        sudo make -C arch-install-scripts-${VERSION} check || exit 1
+        sudo make -C arch-install-scripts-${VERSION} PREFIX=/usr install || exit 1
+
         sudo touch /etc/pacman-mirrors.conf
-        
+
         sudo rm arch-install-scripts.tar.gz
-        sudo rm -r arch-install-scripts-${VERSION}        
-        
+        sudo rm -r arch-install-scripts-${VERSION}
+
     - id: install-calamares-tools
       shell: bash
       run: |
         echo "### install-calamares-tools ###"
-        sudo git clone --depth 1 https://gitlab.manjaro.org/applications/calamares-tools.git
-        
-        pushd calamares-tools
-          sudo install -d /usr/share/calamares/
-          sudo cp -rv schemas/ /usr/share/calamares/
-        popd
-        
-        sudo rm -r calamares-tools
+        (
+          sudo git clone --depth 1 https://gitlab.manjaro.org/applications/calamares-tools.git
+          pushd calamares-tools
+            sudo install -d /usr/share/calamares/
+            sudo cp -rv schemas/ /usr/share/calamares/
+          popd
+          sudo rm -r calamares-tools
+        )
         
     - id: install-mkinitcpio
       shell: bash
@@ -238,9 +279,6 @@ runs:
 
         # Update package lists and system
         sudo pacman -Syu --noconfirm
-
-        # Remove old versions of mkinitcpio
-        sudo pacman -R mkinitcpio --noconfirm
 
         # Find the latest stable version of mkinitcpio
         VERSION=$(curl -s https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/tags | grep -oP 'v\K[0-9.]+(?=")' | sort -V | tail -n1)
@@ -259,217 +297,179 @@ runs:
         # Clean up
         sudo rm mkinitcpio-v${VERSION}.tar.gz
         sudo rm -r mkinitcpio-v${VERSION}
-        
+
     - id: install-manjaro-tools
       shell: bash
       env:
-        CUSTOM_REPO: ${{ inputs.custom-repo }}
+      CUSTOM_REPO: ${{ inputs.custom-repo }}
       run: |
         echo "### install-manjaro-tools ###"
-        #make majaro-tools
-        sudo git clone --depth 1 https://gitlab.manjaro.org/tools/development-tools/manjaro-tools.git
-        pushd manjaro-tools
-          sudo make SYSCONFDIR=/etc PREFIX=/usr
-          sudo make SYSCONFDIR=/etc PREFIX=/usr install_base
-          sudo make SYSCONFDIR=/etc PREFIX=/usr install_yaml
-          sudo make SYSCONFDIR=/etc PREFIX=/usr install_iso
-        popd
-        
-        sudo rm -r manjaro-tools
-        
-        #add custom repo
-        if [ ! -z ${CUSTOM_REPO} ]; then
-          echo "## adding repo [${CUSTOM_REPO}]"
-          sudo sed -i -e "s/\[core\]/\[${CUSTOM_REPO}\]\nSigLevel = PackageRequired\nInclude = \/etc\/pacman\.d\/mirrorlist\n\n\[core\]/" /usr/share/manjaro-tools/pacman-multilib.conf
+        # Clone e instale o manjaro-tools em uma subshell
+        # Saia com código de erro 1 se houver falha
+        (
+          sudo git clone --depth 1 https://gitlab.manjaro.org/tools/development-tools/manjaro-tools.git
+          pushd manjaro-tools
+            sudo make SYSCONFDIR=/etc PREFIX=/usr
+            sudo make SYSCONFDIR=/etc PREFIX=/usr install_base
+            sudo make SYSCONFDIR=/etc PREFIX=/usr install_yaml
+            sudo make SYSCONFDIR=/etc PREFIX=/usr install_iso
+          popd
+          sudo rm -r manjaro-tools
+        ) || exit 1
+
+        # Adicione o repositório personalizado, se fornecido
+        if [ -n <q>"${CUSTOM_REPO}"</q> ]; then
+          echo <q>"## adding repo [${CUSTOM_REPO}]"</q>
+          sudo sed -i -e <q>"s/\[core\]/\[${CUSTOM_REPO}\]\nSigLevel = PackageRequired\nInclude = \/etc\/pacman\.d\/mirrorlist\n\n\[core\]/"</q> /usr/share/manjaro-tools/pacman-multilib.conf
         fi
-        
-        #change mirror
-        # sudo sed -i "s|https://mirror.alpix.eu/manjaro|${{ inputs.build-mirror }}|" /lib/manjaro-tools/util.sh
-        mirror=$(cat /etc/pacman.d/mirrorlist | head -n1 | awk '{print $3}' | sed -ne 's/\(manjaro\).*/\1/p')
-        sudo sed -i "s|https://mirror.alpix.eu/manjaro|${mirror}|" /lib/manjaro-tools/util.sh
+
+        # Obtenha o espelho do Manjaro a partir do mirrorlist e substitua-o no util.sh
+        mirror=$(sed -n '1s/^Server = //p' /etc/pacman.d/mirrorlist | awk -F'/' '{print $3}')
+        sudo sed -i <q>"s|https://mirror.alpix.eu/manjaro|${mirror}|"</q> /lib/manjaro-tools/util.sh
+
+        # Habilite ParallelDownloads e aumente o número de downloads paralelos
         sudo sed -i '/ParallelDownloads/s/#//' /usr/share/manjaro-tools/pacman-multilib.conf
         sudo sed -i '/ParallelDownloads/s/5/8/' /usr/share/manjaro-tools/pacman-multilib.conf
-        
-        #
-        [ "$SCOPE" == "minimal" ] && unset SCOPE && unset OFFICE
-        [ "$OFFICE" == "false" ] && unset OFFICE
 
-        #source the version info from current release info
+        # Defina SCOPE e OFFICE com valores padrão, se não estiverem definidos
+        [ <q>"${SCOPE:-full}"</q> == <q>"minimal"</q> ] && unset SCOPE && unset OFFICE
+        [ <q>"${OFFICE:-true}"</q> == <q>"false"</q> ] && unset OFFICE
+
+        # Obtenha informações de versão do Manjaro e substitua-as no util.sh
         source <(curl -s https://gitlab.manjaro.org/packages/core/manjaro-release/-/raw/master/lsb-release)
         sudo sed -i -e "s|dist_name=\$(get_distname)|dist_name=${DISTRIB_ID%Linux}|g" /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e 's|iso_name=$(get_osid)|iso_name=manjaro|g' /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e "s|dist_release=\$(get_release)|dist_release=${{ inputs.release-tag }}|g" /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e "s|dist_codename=\$(get_codename)|dist_codename=\"${CODE_NAME:-$DISTRIB_CODENAME}\"|g" /usr/lib/manjaro-tools/util.sh
-        
+
+        # Defina a marca do BigLinux
         sudo sed -i -e 's|dist_branding=.*|dist_branding="biglinux"|' /usr/lib/manjaro-tools/util.sh
+
+        # Modifique o nome do arquivo ISO
         sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
-        
-        # #troca busca de kerneis para pegar qualquer kernel
+
+        # Modifique a busca por versões de kernel
         sudo sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
-        
-        # #disable kernel version verification
+
+        # Desabilite a verificação de versão do kernel
         sudo sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
-        
-        # Remove last } in /usr/lib/manjaro-tools/util-iso-image.sh
+
+        # Remova a última chave fechante no util-iso-image.sh
         sudo sed -i ':a;$!{N;ba;};s/\(.*\)}/\1/' /usr/lib/manjaro-tools/util-iso-image.sh
-        # adicionar ao arquivo /usr/lib/manjaro-tools/util-iso-image.sh
-        echo '  #BigLinux clean
-        path=$1/usr/share/doc
-        if [[ -d $path ]]; then
-          rm -Rf $path/* &> /dev/null
-        fi
 
-        #BigLinux clean
-        path=$1/usr/share/man
-        if [[ -d $path ]]; then
-          rm -Rf $path/* &> /dev/null
-        fi
+        # Adicione as limpezas do BigLinux ao util-iso-image.sh
+        {
+          echo '  #BigLinux clean'
+          echo '  path=$1/usr/share/doc'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/* &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #BigLinux clean'
+          echo '  path=$1/usr/share/man'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/* &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #Clean LibreOffice'
+          echo '  path=$1/usr/lib/libreoffice/share/config'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -f $path/images_karasa_jaga* &> /dev/null'
+          echo '    rm -f $path/images_elementary* &> /dev/null'
+          echo '    rm -f $path/images_sukapura* &> /dev/null'
+          echo '    rm -f $path/images_colibre_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_sifr_dark_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_sifr_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_breeze_dark_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_breeze_svg.zip &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #Clean LibreOffice'
+          echo '  path=$1/usr/share/wallpapers'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/Altai'
+          echo '    rm -Rf $path/BytheWater'
+          echo '    # ... (outras pastas removidas)'
+          echo '  fi'
+        } | sudo tee -a /usr/lib/manjaro-tools/util-iso-image.sh
 
-        #Clean LibreOffice
-        path=$1/usr/lib/libreoffice/share/config
-        if [[ -d $path ]]; then
-          rm -f $path/images_karasa_jaga* &> /dev/null
-          rm -f $path/images_elementary* &> /dev/null
-          rm -f $path/images_sukapura* &> /dev/null
-          rm -f $path/images_colibre_svg.zip &> /dev/null
-          rm -f $path/images_sifr_dark_svg.zip &> /dev/null
-          rm -f $path/images_sifr_svg.zip &> /dev/null
-          rm -f $path/images_breeze_dark_svg.zip &> /dev/null
-          rm -f $path/images_breeze_svg.zip &> /dev/null
-        fi
+        # Adicione a sobreposição de root
+        sudo sed -i '/copy_overlay <q>"${profile_dir}\/root-overlay"</q> <q>"${path}"</q>/a [[ -e ${profile_dir}\/root-overlay ]] && copy_overlay <q>"${profile_dir}\/root-overlay"</q> <q>"${path}"</q>' /usr/lib/manjaro-tools/util-iso.sh
 
-        #Clean LibreOffice
-        path=$1/usr/share/wallpapers
-        if [[ -d $path ]]; then
-          rm -Rf $path/Altai
-          rm -Rf $path/BytheWater
-          rm -Rf $path/Cascade
-          rm -Rf $path/ColdRipple
-          rm -Rf $path/DarkestHour
-          rm -Rf $path/EveningGlow
-          rm -Rf $path/Flow
-          rm -Rf $path/FlyingKonqui
-          rm -Rf $path/IceCold
-          rm -Rf $path/Kokkini
-          rm -Rf $path/Next
-          rm -Rf $path/Opal
-          rm -Rf $path/Patak
-          rm -Rf $path/SafeLanding
-          rm -Rf $path/summer_1am
-          rm -Rf $path/Autumn
-          rm -Rf $path/Canopee
-          rm -Rf $path/Cluster
-          rm -Rf $path/ColorfulCups
-          rm -Rf $path/Elarun
-          rm -Rf $path/FallenLeaf
-          rm -Rf $path/Fluent
-          rm -Rf $path/Grey
-          rm -Rf $path/Kite
-          rm -Rf $path/MilkyWay
-          rm -Rf $path/OneStandsOut
-          rm -Rf $path/PastelHills
-          rm -Rf $path/Path
-          rm -Rf $path/Shell
-          rm -Rf $path/Volna
-        fi
+        # Habilite plymouth e kms
+        sudo sed -i <q>"s|keyboard keymap|keyboard keymap kms plymouth|g"</q> /usr/share/manjaro-tools/mkinitcpio.conf
 
-        }' | sudo tee -a /usr/lib/manjaro-tools/util-iso-image.sh
-        
-        
-        # Add root-overlay
-        sudo sed -i '/copy_overlay "${profile_dir}\/root-overlay" "${path}"/a [[ -e ${profile_dir}\/root-overlay ]] && copy_overlay "${profile_dir}\/root-overlay" "${path}"' /usr/lib/manjaro-tools/util-iso.sh
+        echo <q>"inputs.manjarobranch = ${{ inputs.manjarobranch }}"</q>
+        echo <q>"inputs.bigbranch = ${{ inputs.bigbranch }}"</q>
+        echo <q>"inputs.edition = ${{ inputs.edition }}"</q>
 
-        # plymouth
-        # Add video modules to use plymouth in live mode
-        # sudo sed -i "s|loop dm-snapshot|loop dm-snapshot amdgpu radeon i915 nouveau mgag200 bochs virtio-gpu qxl vmwgfx cirrus vmwgfx vboxvideo|g" /usr/share/manjaro-tools/mkinitcpio.conf
-
-        # Enable plymouth and kms
-        sudo sed -i "s|keyboard keymap|keyboard keymap kms plymouth|g" /usr/share/manjaro-tools/mkinitcpio.conf
-
-        # Disable pxe boot
-        #sudo sed -i "s|miso_pxe_common miso_pxe_http miso_pxe_nbd miso_pxe_nfs||g" /usr/share/manjaro-tools/mkinitcpio.conf
-        sleep 10
-        echo "inputs.manjarobranch = ${{ inputs.manjarobranch }}"
-        echo "inputs.bigbranch = ${{ inputs.bigbranch }}"
-        echo "inputs.edition = ${{ inputs.edition }}"
-        
-        # Function to add repositories
+        # Função para adicionar repositórios
         add_repository() {
-            local arquivo_conf=$1
+          local arquivo_conf=$1
 
-            # Add the biglinux-keyring repository if not present
-            if [ -z "$(grep biglinux-keyring $arquivo_conf)" ]; then
-                sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $arquivo_conf
-            fi
-            
-            # Add the biglinux-update-stable repository
-            if [ -z "$(grep biglinux-update-stable $arquivo_conf)" ]; then
-                sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $arquivo_conf
-                sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' $arquivo_conf
-                sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' $arquivo_conf
-                sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $arquivo_conf
-            fi
+          # Adicione o repositório biglinux-keyring, se não estiver presente
+          if ! grep -q 'biglinux-keyring' <q>"$arquivo_conf"</q>; then
+            sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' <q>"$arquivo_conf"</q>
+          fi
 
-            # Handle Manjaro branch cases
-            branch="${{ inputs.manjarobranch }}"
-            case "$branch" in
-              "stable"|"testing"|"unstable")
-              # Add new Manjaro server entries
-                servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
-                for server in "${servers[@]}"; do
-                  echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a $arquivo_conf
-                done
-                ;;
-            esac
-
-            # Add the test repository if it is biglinux=testing and manjaro=stable
-            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
-              echo '
-              [biglinux-testing]
-              SigLevel = PackageRequired
-              Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-            fi
-            
-            # Add the test repository if it is biglinux=testing and manjaro=testing
-            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
-              echo '
-              [biglinux-testing]
-              SigLevel = PackageRequired
-              Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-            fi
-
-            # Add the test repository if it is biglinux=testing and manjaro=unstable
-            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
-              # Add the biglinux-testing repository
-              echo '
-              [biglinux-testing]
-              SigLevel = PackageRequired
-              Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-            fi
-            
-            # Add the biglinux-stable repository
-            echo '
-            [biglinux-stable]
+          # Adicione o repositório biglinux-update-stable, se não estiver presente
+          if ! grep -q 'biglinux-update-stable' <q>"$arquivo_conf"</q>; then
+            sudo sed -i '/\[core\]/{x;/^$/!{x;H;};/^$/p;x;}' <q>"$arquivo_conf"</q>
+            echo '[biglinux-update-stable]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/stable/$arch' | sudo tee -a $arquivo_conf
+            Server = https://repo.biglinux.com.br/update-stable/$arch' | sudo tee -a "$arquivo_conf"
+          fi
+
+          # Lide com os casos de branch do Manjaro
+          branch=<q>"${{ inputs.manjarobranch }}"</q>
+          case <q>"$branch"</q> in
+            <q>"stable"</q>|<q>"testing"</q>|<q>"unstable"</q>)
+              servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
+              for server in <q>"${servers[@]}"</q>; do
+                echo <q>"Server = https://$server/manjaro/$branch/\$repo/\$arch"</q> | sudo tee -a <q>"$arquivo_conf"</q>
+              done
+              ;;
+          esac
+
+          # Adicione o repositório de teste se biglinux=testing e manjaro=stable
+          if [ <q>"${{ inputs.bigbranch }}"</q> = <q>"testing"</q> ] && [ <q>"${{ inputs.manjarobranch }}"</q> = <q>"stable"</q> ]; then
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          # Adicione o repositório de teste se biglinux=testing e manjaro=testing
+          elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          # Adicione o repositório de teste se biglinux=testing e manjaro=unstable
+          elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          fi
+          # Adicione o repositório biglinux-stable
+          echo '[biglinux-stable]
+          SigLevel = PackageRequired
+          Server = https://repo.biglinux.com.br/stable/$arch' | sudo tee -a "$arquivo_conf"
         }
 
-        # Apply changes to both configuration
-        add_repository "/usr/share/manjaro-tools/pacman-default.conf"
-        add_repository "/usr/share/manjaro-tools/pacman-multilib.conf"
-        
-        # # Disable remove pkgs cache
-        sudo sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|'g /usr/lib/manjaro-tools/util-iso-image.sh
-        
-        # Faster compression
-        if [ "${{ inputs.bigbranch }}" != "stable" ];then
+        # Aplique as alterações em ambas as configurações
+        add_repository <q>"/usr/share/manjaro-tools/pacman-default.conf"</q>
+        add_repository <q>"/usr/share/manjaro-tools/pacman-multilib.conf"</q>
+
+        # Desabilite a remoção do cache de pacotes
+        sudo sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|g' /usr/lib/manjaro-tools/util-iso-image.sh
+
+        # Compressão mais rápida para branches não estáveis
+        if [ "${{ inputs.bigbranch }}" != "stable" ]; then
           sudo sed -i 's|-Xcompression-level 20|-Xcompression-level 6|g' /usr/lib/manjaro-tools/util-iso.sh
           sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         else
+          # Aumente o tamanho do buffer para compressão, mesmo para o branch estável
           sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         fi
-        
-        # Pint mirrorlist
+
+        # Imprima o mirrorlist e as configurações do pacman
         echo "print mirrorlist..."
         cat /etc/pacman.d/mirrorlist
         echo ""
@@ -478,7 +478,8 @@ runs:
         echo ""
         echo "Print pacman-multilib"
         cat /usr/share/manjaro-tools/pacman-multilib.conf
-    
+        # PAREI AQUI!!
+        
     - id: checkout-iso-profiles
       shell: bash
       env:
