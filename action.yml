@@ -249,8 +249,10 @@ runs:
         VERSION=$(curl -s https://api.github.com/repos/archlinux/arch-install-scripts/tags | grep -oP '"name": "\Kv[0-9.]+(?=")' | sort -V | tail -n1 | cut -c 2-)
         echo "Downloading arch-install-scripts version $VERSION"
         sudo wget https://github.com/archlinux/arch-install-scripts/archive/refs/tags/v${VERSION}.tar.gz -O arch-install-scripts.tar.gz
-        SHA256SUM=$(curl -s https://github.com/archlinux/arch-install-scripts/releases/download/v${VERSION}/sha256sums.txt | grep "arch-install-scripts-${VERSION}.tar.gz" | cut -d' ' -f1)
-        echo "${SHA256SUM} arch-install-scripts.tar.gz" | sha256sum --check || exit 1
+        SHA256SUMS=($(curl -s https://github.com/archlinux/arch-install-scripts/releases/download/v${VERSION}/sha256sums.txt | grep "arch-install-scripts-${VERSION}.tar.gz" | cut -d' ' -f1))
+        for sum in "${SHA256SUMS[@]}"; do
+          echo "${sum} arch-install-scripts.tar.gz" | sha256sum --check && break
+        done || exit 1
 
         sudo tar -xvf arch-install-scripts.tar.gz
         sudo make -C arch-install-scripts-${VERSION} || exit 1
