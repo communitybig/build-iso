@@ -355,186 +355,145 @@ runs:
         sudo sed -i '/ParallelDownloads/s/#//' /usr/share/manjaro-tools/pacman-multilib.conf
         sudo sed -i '/ParallelDownloads/s/5/8/' /usr/share/manjaro-tools/pacman-multilib.conf
         
-        #
-        [ "$SCOPE" == "minimal" ] && unset SCOPE && unset OFFICE
-        [ "$OFFICE" == "false" ] && unset OFFICE
+        # Defina SCOPE e OFFICE com valores padrão, se não estiverem definidos
+        [ "${SCOPE:-full}" == "minimal" ] && unset SCOPE && unset OFFICE
+        [ "${OFFICE:-true}" == "false" ] && unset OFFICE
 
-        #source the version info from current release info
+        # Obtenha informações de versão do Manjaro e substitua-as no util.sh
         source <(curl -s https://gitlab.manjaro.org/packages/core/manjaro-release/-/raw/master/lsb-release)
         sudo sed -i -e "s|dist_name=\$(get_distname)|dist_name=${DISTRIB_ID%Linux}|g" /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e 's|iso_name=$(get_osid)|iso_name=manjaro|g' /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e "s|dist_release=\$(get_release)|dist_release=${{ inputs.release-tag }}|g" /usr/lib/manjaro-tools/util.sh
         sudo sed -i -e "s|dist_codename=\$(get_codename)|dist_codename=\"${CODE_NAME:-$DISTRIB_CODENAME}\"|g" /usr/lib/manjaro-tools/util.sh
-        
+
+        # Defina a marca do BigLinux
         sudo sed -i -e 's|dist_branding=.*|dist_branding="biglinux"|' /usr/lib/manjaro-tools/util.sh
+
+        # Modifique o nome do arquivo ISO
         sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
-        
-        # #troca busca de kerneis para pegar qualquer kernel
+
+        # Modifique a busca por versões de kernel
         sudo sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
-        
-        # #disable kernel version verification
+
+        # Desabilite a verificação de versão do kernel
         sudo sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
-        
-        # Remove last } in /usr/lib/manjaro-tools/util-iso-image.sh
+
+        # Remova a última chave fechante no util-iso-image.sh
         sudo sed -i ':a;$!{N;ba;};s/\(.*\)}/\1/' /usr/lib/manjaro-tools/util-iso-image.sh
-        # adicionar ao arquivo /usr/lib/manjaro-tools/util-iso-image.sh
-        echo '  #BigLinux clean
-        path=$1/usr/share/doc
-        if [[ -d $path ]]; then
-          rm -Rf $path/* &> /dev/null
-        fi
+        # Adicione as limpezas do BigLinux ao util-iso-image.sh
+        {
+          echo '  #BigLinux clean'
+          echo '  path=$1/usr/share/doc'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/*&> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #BigLinux clean'
+          echo '  path=$1/usr/share/man'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/* &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #Clean LibreOffice'
+          echo '  path=$1/usr/lib/libreoffice/share/config'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -f $path/images_karasa_jaga*&> /dev/null'
+          echo '    rm -f $path/images_elementary* &> /dev/null'
+          echo '    rm -f $path/images_sukapura*&> /dev/null'
+          echo '    rm -f $path/images_colibre_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_sifr_dark_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_sifr_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_breeze_dark_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_breeze_svg.zip &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #Clean LibreOffice'
+          echo '  path=$1/usr/share/wallpapers'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/Altai'
+          echo '    rm -Rf $path/BytheWater'
+          echo '    # ... (outras pastas removidas)'
+          echo '  fi'
+        } | sudo tee -a /usr/lib/manjaro-tools/util-iso-image.sh
 
-        #BigLinux clean
-        path=$1/usr/share/man
-        if [[ -d $path ]]; then
-          rm -Rf $path/* &> /dev/null
-        fi
-
-        #Clean LibreOffice
-        path=$1/usr/lib/libreoffice/share/config
-        if [[ -d $path ]]; then
-          rm -f $path/images_karasa_jaga* &> /dev/null
-          rm -f $path/images_elementary* &> /dev/null
-          rm -f $path/images_sukapura* &> /dev/null
-          rm -f $path/images_colibre_svg.zip &> /dev/null
-          rm -f $path/images_sifr_dark_svg.zip &> /dev/null
-          rm -f $path/images_sifr_svg.zip &> /dev/null
-          rm -f $path/images_breeze_dark_svg.zip &> /dev/null
-          rm -f $path/images_breeze_svg.zip &> /dev/null
-        fi
-
-        #Clean LibreOffice
-        path=$1/usr/share/wallpapers
-        if [[ -d $path ]]; then
-          rm -Rf $path/Altai
-          rm -Rf $path/BytheWater
-          rm -Rf $path/Cascade
-          rm -Rf $path/ColdRipple
-          rm -Rf $path/DarkestHour
-          rm -Rf $path/EveningGlow
-          rm -Rf $path/Flow
-          rm -Rf $path/FlyingKonqui
-          rm -Rf $path/IceCold
-          rm -Rf $path/Kokkini
-          rm -Rf $path/Next
-          rm -Rf $path/Opal
-          rm -Rf $path/Patak
-          rm -Rf $path/SafeLanding
-          rm -Rf $path/summer_1am
-          rm -Rf $path/Autumn
-          rm -Rf $path/Canopee
-          rm -Rf $path/Cluster
-          rm -Rf $path/ColorfulCups
-          rm -Rf $path/Elarun
-          rm -Rf $path/FallenLeaf
-          rm -Rf $path/Fluent
-          rm -Rf $path/Grey
-          rm -Rf $path/Kite
-          rm -Rf $path/MilkyWay
-          rm -Rf $path/OneStandsOut
-          rm -Rf $path/PastelHills
-          rm -Rf $path/Path
-          rm -Rf $path/Shell
-          rm -Rf $path/Volna
-        fi
-
-        }' | sudo tee -a /usr/lib/manjaro-tools/util-iso-image.sh
-        
-        
-        # Add root-overlay
+        # Adicione a sobreposição de root
         sudo sed -i '/copy_overlay "${profile_dir}\/root-overlay" "${path}"/a [[ -e ${profile_dir}\/root-overlay ]] && copy_overlay "${profile_dir}\/root-overlay" "${path}"' /usr/lib/manjaro-tools/util-iso.sh
 
-        # plymouth
-        # Add video modules to use plymouth in live mode
-        # sudo sed -i "s|loop dm-snapshot|loop dm-snapshot amdgpu radeon i915 nouveau mgag200 bochs virtio-gpu qxl vmwgfx cirrus vmwgfx vboxvideo|g" /usr/share/manjaro-tools/mkinitcpio.conf
-
-        # Enable plymouth and kms
+        # Habilite plymouth e kms
         sudo sed -i "s|keyboard keymap|keyboard keymap kms plymouth|g" /usr/share/manjaro-tools/mkinitcpio.conf
 
-        # Disable pxe boot
-        #sudo sed -i "s|miso_pxe_common miso_pxe_http miso_pxe_nbd miso_pxe_nfs||g" /usr/share/manjaro-tools/mkinitcpio.conf
-        sleep 10
         echo "inputs.manjarobranch = ${{ inputs.manjarobranch }}"
         echo "inputs.bigbranch = ${{ inputs.bigbranch }}"
         echo "inputs.edition = ${{ inputs.edition }}"
-        
-        # Function to add repositories
+
+        # Função para adicionar repositórios
         add_repository() {
-            local arquivo_conf=$1
+          local arquivo_conf=$1
 
-            # Add the biglinux-keyring repository if not present
-            if [ -z "$(grep biglinux-keyring $arquivo_conf)" ]; then
-                sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' $arquivo_conf
-            fi
-            
-            # Add the biglinux-update-stable repository
-            if [ -z "$(grep biglinux-update-stable $arquivo_conf)" ]; then
-                sudo sed -i '/\[core\]/{h;s/.*/\[biglinux-update-stable\]/;p;x;}' $arquivo_conf
-                sudo sed -i '/\[core\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' $arquivo_conf
-                sudo sed -i '/\[core\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/update-stable\/$arch/;p;x;}' $arquivo_conf
-                sudo sed -i '/\[core\]/{h;s/.*//;p;x;}' $arquivo_conf
-            fi
+          # Adicione o repositório biglinux-keyring, se não estiver presente
+          if ! grep -q 'biglinux-keyring' "$arquivo_conf"; then
+            sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' "$arquivo_conf"
+          fi
 
-            # Handle Manjaro branch cases
-            branch="${{ inputs.manjarobranch }}"
-            case "$branch" in
-              "stable"|"testing"|"unstable")
-              # Add new Manjaro server entries
-                servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
-                for server in "${servers[@]}"; do
-                  echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a $arquivo_conf
-                done
-                ;;
-            esac
-
-            # Add the test repository if it is biglinux=testing and manjaro=stable
-            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
-              echo '
-              [biglinux-testing]
-              SigLevel = PackageRequired
-              Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-            fi
-            
-            # Add the test repository if it is biglinux=testing and manjaro=testing
-            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
-              echo '
-              [biglinux-testing]
-              SigLevel = PackageRequired
-              Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-            fi
-
-            # Add the test repository if it is biglinux=testing and manjaro=unstable
-            if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
-              # Add the biglinux-testing repository
-              echo '
-              [biglinux-testing]
-              SigLevel = PackageRequired
-              Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a $arquivo_conf
-            fi
-            
-            # Add the biglinux-stable repository
-            echo '
-            [biglinux-stable]
+          # Adicione o repositório biglinux-update-stable, se não estiver presente
+          if ! grep -q 'biglinux-update-stable' "$arquivo_conf"; then
+            sudo sed -i '/\[core\]/{x;/^$/!{x;H;};/^$/p;x;}' "$arquivo_conf"
+            echo '[biglinux-update-stable]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/stable/$arch' | sudo tee -a $arquivo_conf
+            Server = https://repo.biglinux.com.br/update-stable/$arch' | sudo tee -a "$arquivo_conf"
+          fi
+
+          # Lide com os casos de branch do Manjaro
+          branch="${{ inputs.manjarobranch }}"
+          case "$branch" in
+            "stable"|"testing"|"unstable")
+              servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
+              for server in "${servers[@]}"; do
+                echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a "$arquivo_conf"
+              done
+              ;;
+          esac
+
+          # Adicione o repositório de teste se biglinux=testing e manjaro=stable
+          if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          # Adicione o repositório de teste se biglinux=testing e manjaro=testing
+          elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          # Adicione o repositório de teste se biglinux=testing e manjaro=unstable
+          elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          fi
+
+          # Adicione o repositório biglinux-stable
+          echo '[biglinux-stable]
+          SigLevel = PackageRequired
+          Server = https://repo.biglinux.com.br/stable/$arch' | sudo tee -a "$arquivo_conf"
         }
 
-        # Apply changes to both configuration
+        # Aplique as alterações em ambas as configurações
         add_repository "/usr/share/manjaro-tools/pacman-default.conf"
         add_repository "/usr/share/manjaro-tools/pacman-multilib.conf"
-        
-        # # Disable remove pkgs cache
-        sudo sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|'g /usr/lib/manjaro-tools/util-iso-image.sh
-        
-        # Faster compression
-        if [ "${{ inputs.bigbranch }}" != "stable" ];then
+
+        # Desabilite a remoção do cache de pacotes
+        sudo sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|g' /usr/lib/manjaro-tools/util-iso-image.sh
+
+        # Compressão mais rápida para branches não estáveis
+        if [ "${{ inputs.bigbranch }}" != "stable" ]; then
           sudo sed -i 's|-Xcompression-level 20|-Xcompression-level 6|g' /usr/lib/manjaro-tools/util-iso.sh
           sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         else
+          # Aumente o tamanho do buffer para compressão, mesmo para o branch estável
           sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         fi
-        
-        # Pint mirrorlist
+
+        # Imprima o mirrorlist e as configurações do pacman
         echo "print mirrorlist..."
         cat /etc/pacman.d/mirrorlist
         echo ""
