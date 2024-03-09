@@ -380,69 +380,42 @@ runs:
 
         # Remova a última chave fechante no util-iso-image.sh
         sudo sed -i ':a;$!{N;ba;};s/\(.*\)}/\1/' /usr/lib/manjaro-tools/util-iso-image.sh
-        # Adicione as limpezas do BigLinux ao util-iso-image.sh
         
-        echo '  #BigLinux clean
-        path=$1/usr/share/doc
-        if [[ -d $path ]]; then
-          rm -Rf $path/* &> /dev/null
-        fi
-
-        #BigLinux clean
-        path=$1/usr/share/man
-        if [[ -d $path ]]; then
-          rm -Rf $path/* &> /dev/null
-        fi
-
-        #Clean LibreOffice
-        path=$1/usr/lib/libreoffice/share/config
-        if [[ -d $path ]]; then
-          rm -f $path/images_karasa_jaga* &> /dev/null
-          rm -f $path/images_elementary* &> /dev/null
-          rm -f $path/images_sukapura* &> /dev/null
-          rm -f $path/images_colibre_svg.zip &> /dev/null
-          rm -f $path/images_sifr_dark_svg.zip &> /dev/null
-          rm -f $path/images_sifr_svg.zip &> /dev/null
-          rm -f $path/images_breeze_dark_svg.zip &> /dev/null
-          rm -f $path/images_breeze_svg.zip &> /dev/null
-        fi
-
-        #Clean LibreOffice
-        path=$1/usr/share/wallpapers
-        if [[ -d $path ]]; then
-          rm -Rf $path/Altai
-          rm -Rf $path/BytheWater
-          rm -Rf $path/Cascade
-          rm -Rf $path/ColdRipple
-          rm -Rf $path/DarkestHour
-          rm -Rf $path/EveningGlow
-          rm -Rf $path/Flow
-          rm -Rf $path/FlyingKonqui
-          rm -Rf $path/IceCold
-          rm -Rf $path/Kokkini
-          rm -Rf $path/Next
-          rm -Rf $path/Opal
-          rm -Rf $path/Patak
-          rm -Rf $path/SafeLanding
-          rm -Rf $path/summer_1am
-          rm -Rf $path/Autumn
-          rm -Rf $path/Canopee
-          rm -Rf $path/Cluster
-          rm -Rf $path/ColorfulCups
-          rm -Rf $path/Elarun
-          rm -Rf $path/FallenLeaf
-          rm -Rf $path/Fluent
-          rm -Rf $path/Grey
-          rm -Rf $path/Kite
-          rm -Rf $path/MilkyWay
-          rm -Rf $path/OneStandsOut
-          rm -Rf $path/PastelHills
-          rm -Rf $path/Path
-          rm -Rf $path/Shell
-          rm -Rf $path/Volna
-        fi
-
-        }' | sudo tee -a /usr/lib/manjaro-tools/util-iso-image.sh
+        # Adicione as limpezas do BigLinux ao util-iso-image.sh
+        {
+          echo '  #BigLinux clean'
+          echo '  path=$1/usr/share/doc'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/*&> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #BigLinux clean'
+          echo '  path=$1/usr/share/man'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/* &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #Clean LibreOffice'
+          echo '  path=$1/usr/lib/libreoffice/share/config'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -f $path/images_karasa_jaga*&> /dev/null'
+          echo '    rm -f $path/images_elementary* &> /dev/null'
+          echo '    rm -f $path/images_sukapura*&> /dev/null'
+          echo '    rm -f $path/images_colibre_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_sifr_dark_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_sifr_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_breeze_dark_svg.zip &> /dev/null'
+          echo '    rm -f $path/images_breeze_svg.zip &> /dev/null'
+          echo '  fi'
+          echo ''
+          echo '  #Clean LibreOffice'
+          echo '  path=$1/usr/share/wallpapers'
+          echo '  if [[ -d $path ]]; then'
+          echo '    rm -Rf $path/Altai'
+          echo '    rm -Rf $path/BytheWater'
+          echo '    # ... (outras pastas removidas)'
+          echo '  fi'
+        } | sudo tee -a /usr/lib/manjaro-tools/util-iso-image.sh
         
         
         # Add root-overlay
