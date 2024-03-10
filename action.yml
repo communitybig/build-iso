@@ -546,19 +546,9 @@ runs:
         EXTRAREPO: ${{ inputs.extrarepo }}
         RELEASE_TAG: ${{ inputs.release-tag }}
       run: |
-        # Configuração do kernel
-        if [ "$KERNEL" = "oldLts" ]; then
-          KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
-        elif [ "$KERNEL" = "atualLts" ]; then
-          KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
-        elif [ "$KERNEL" = "latest" ]; then
-          KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-          echo 'linux-latest' | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
-        elif [ -n "$(echo "$KERNEL" | grep xanmod)" ]; then
-          echo 'linux-firmware' | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
-          KERNEL="-${KERNEL}"
-        fi
-
+        ## BigLinux Pre Config Build ISO
+        echo "## BigLinux Pre Config Build ISO ##"
+        
         # Configuração do MESA
         if [ "$KERNEL" = "latest" ] || [ "$KERNEL" = "xanmod" ]; then
           echo '
@@ -567,6 +557,23 @@ runs:
           sudo sed -i '/libva-mesa/d' iso-profiles/biglinux/"$EDITION"/Packages-Desktop
           sudo sed -i '/libva-mesa/d' iso-profiles/biglinux/"$EDITION"/Packages-Mhwd
           sudo sed -i '/vulkan-swrast/d' iso-profiles/biglinux/"$EDITION"/Packages-Desktop
+        fi
+
+        # Configuração do kernel
+        if [ "$KERNEL" = "oldLts" ]; then
+          OLDLTS=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
+          KERNEL=$OLDLTS
+        elif [ "$KERNEL" = "atualLts" ]; then
+          ATUALLTS=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
+          KERNEL=$ATUALLTS
+        elif [ "$KERNEL" = "latest" ]; then
+          KERNELVER=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
+          echo "linux-latest" | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
+          KERNEL=$KERNELVER
+        elif [ -n "$(echo "$KERNEL" | grep xanmod)" ]; then
+          echo '
+          linux-firmware' | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
+          KERNEL="-${KERNEL}"
         fi
 
         # Configuração do branch BigLinux
