@@ -548,18 +548,18 @@ runs:
       run: |
         ## BigLinux Pre Config Build ISO
         echo "## BigLinux Pre Config Build ISO ##"
-        
-        # Configuração do MESA
-        if [ "$KERNEL" = "latest" ] || [ "$KERNEL" = "xanmod" ]; then
+
+        #MESA
+        if [ "$KERNEL" = "latest" -o "$KERNEL" = "xanmod" ]; then
           echo '
           mesa-tkg-stable
-          lib32-mesa-tkg-stable' | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
-          sudo sed -i '/libva-mesa/d' iso-profiles/biglinux/"$EDITION"/Packages-Desktop
-          sudo sed -i '/libva-mesa/d' iso-profiles/biglinux/"$EDITION"/Packages-Mhwd
-          sudo sed -i '/vulkan-swrast/d' iso-profiles/biglinux/"$EDITION"/Packages-Desktop
+          lib32-mesa-tkg-stable' | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          sudo sed -i '/libva-mesa/d'  iso-profiles/biglinux/$EDITION/Packages-Desktop
+          sudo sed -i '/libva-mesa/d'  iso-profiles/biglinux/$EDITION/Packages-Mhwd
+          sudo sed -i '/vulkan-swrast/d'  iso-profiles/biglinux/$EDITION/Packages-Desktop
         fi
 
-        # Configuração do kernel
+        #KERNEL
         if [ "$KERNEL" = "oldLts" ]; then
           OLDLTS=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
           KERNEL=$OLDLTS
