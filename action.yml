@@ -532,6 +532,18 @@ runs:
         cat /usr/share/manjaro-tools/pacman-multilib.conf
         # PAREI AQUI!!
 
+    - id: checkout-iso-profiles
+      shell: bash
+      env:
+        REPO: ${{ inputs.iso-profiles-repo }}
+        BRANCH: ${{ inputs.iso-profiles-branch }}
+      run: sudo git clone ${BRANCH:+--branch ${BRANCH}} --depth 1 ${REPO} iso-profiles
+
+    # Tmate ##
+    - name: Setup TMATE Session
+      uses: mxschmitt/action-tmate@v3
+      if: "${{ inputs.tmate == 'true' }}"
+      
     - id: image-build
       shell: bash
       env:
@@ -540,16 +552,20 @@ runs:
         MANJAROBRANCH: ${{ inputs.manjarobranch }}
         BIGBRANCH: ${{ inputs.bigbranch }}
         SCOPE: ${{ inputs.scope }}
+        # VERSION: ${{ inputs.version }}
         KERNEL: ${{ inputs.kernel }}
         OFFICE: ${{ inputs.office-chooser }}
         MESA: ${{ inputs.mesa }}
         EXTRAREPO: ${{ inputs.extrarepo }}
-        RELEASE_TAG: ${{ inputs.release-tag }}
       run: |
         ## BigLinux Pre Config Build ISO
         echo "## BigLinux Pre Config Build ISO ##"
-
+        
         #MESA
+        # if [ "$KERNEL" = "oldLts" -a $EDITION != "xivastudio" ]; then
+        #   echo '
+        #   mesa-amber
+        #   lib32-mesa-amber' | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
         if [ "$KERNEL" = "latest" -o "$KERNEL" = "xanmod" ]; then
           echo '
           mesa-tkg-stable
@@ -558,117 +574,118 @@ runs:
           sudo sed -i '/libva-mesa/d'  iso-profiles/biglinux/$EDITION/Packages-Mhwd
           sudo sed -i '/vulkan-swrast/d'  iso-profiles/biglinux/$EDITION/Packages-Desktop
         fi
-
+        
         #KERNEL
-        if [ "$KERNEL" = "oldLts" ]; then
-          OLDLTS=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
-          KERNEL=$OLDLTS
-        elif [ "$KERNEL" = "atualLts" ]; then
-          ATUALLTS=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
-          KERNEL=$ATUALLTS
-        elif [ "$KERNEL" = "latest" ]; then
-          KERNELVER=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-          echo "linux-latest" | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
-          KERNEL=$KERNELVER
-        elif [ -n "$(echo "$KERNEL" | grep xanmod)" ]; then
+        if [ "$KERNEL" = "oldLts" ];then
+          oldLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
+          KERNEL=$oldLts
+        elif [ "$KERNEL" = "atualLts" ];then
+          atualLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
+          KERNEL=$atualLts
+        elif [ "$KERNEL" = "latest" ];then
+          # kernelVer=62
+          # kernelVer=$(pacman -Sl | grep linux[0-9] | grep core | grep -vE "rc|headers" | sort | tail -n1 | cut -d " " -f2 | sed 's/linux//')
+          kernelVer=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
+          echo "linux-latest"  | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          KERNEL=$kernelVer
+        elif [ -n "$(echo $KERNEL | grep xanmod)" ];then
           echo '
-          linux-firmware' | sudo tee -a iso-profiles/biglinux/"$EDITION"/Packages-Root
-          KERNEL="-${KERNEL}"
+          linux-firmware' | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          KERNEL=-${KERNEL}
         fi
-
-        # Configuração do branch BigLinux
-        case "$BIGBRANCH" in
-          stable)
-            echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-            ;;
-          beta)
-            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-            ;;
-          testing)
-            # Adicionar repo testing
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
-
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
-
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
-
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
-
-            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-
-            # Alterar mirrors para testing
-            sudo sed -i 's/stable/testing/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
-            ;;
-        esac
-
-        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-        # Configuração do nome da ISO
-        sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/biglinux/"$EDITION"/profile.conf
-
-        # Definir nome do arquivo ISO
-        if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_RC_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL}.iso"
+        
+        # Stable
+        if [ "$BIGBRANCH" = "stable" ];then
+          echo "BUILD_RELEASE=${{ inputs.release-tag }}" | cut -d "_" -f1 | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
-
-        # Configuração do kernel para o nome da ISO
-        if [ "$KERNEL" != "xanmod" ]; then
-          KERNEL_NAME="k${KERNEL}"
-        elif [ "$KERNEL" = "xanmod" ]; then
-          XAN_VER=$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
-          KERNEL_NAME="${KERNEL//-/}${XAN_VER}"
+        
+        # Beta
+        if [ "$BIGBRANCH" = "beta" ];then
+          echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         fi
-
-        # Remover perfis personalizados
+        
+        # Testing
+        if [ "$BIGBRANCH" = "testing" ];then
+          #add repo testing
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
+          
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
+          
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
+          
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
+          sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
+          
+          echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
+        fi
+        
+        #Build Release and Unix Time
+        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
+        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
+        
+        #LABEL
+        sudo sed -i "s/label=.*/label=biglinux_${{ inputs.release-tag }}.iso/" iso-profiles/biglinux/$EDITION/profile.conf
+        
+        
         sudo rm -r iso-profiles/custom-profiles
-
-        echo "Kernel: $KERNEL_NAME"
-        echo "Edition: $EDITION"
-        echo "ManjaroBranch: $MANJAROBRANCH"
-        echo "BigLinuxBranch: $BIGBRANCH"
-        echo "MESA: $MESA"
-
-        # Construir a ISO
-        sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
-
-        # Limpar diretório de construção
+        
+        echo $KERNEL
+        echo $EDITION
+        echo $MANJAROBRANCH
+        echo $BIGBRANCH
+        echo $MESA
+        
+        sudo buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL} ${OFFICE:+-o}
+        
+        if [ -n "$(echo $KERNEL | grep xanmod)" ];then
+          KERNEL=$(echo ${KERNEL} | sed 's/-//')
+        fi
+        
         sudo rm -Rf /var/lib/manjaro-tools/buildiso/*
-
-        # Mover arquivo ISO para o diretório atual
+      
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        sudo mv "$OUTPUT_ISO_PATH" "./$TARGET_ISO_PATH"
-        echo "file-path=$TARGET_ISO_PATH" >> "$GITHUB_OUTPUT"
-
-        # Mover arquivo de pacotes para o diretório atual
+        
+        #Kernel Name
+        if [ "$KERNEL" != "xanmod" ];then
+          KERNEL=k${KERNEL}
+        elif [ "$KERNEL" = "xanmod" ];then
+          xanVer=$(grep linux-xanmod $(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}') | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
+          KERNEL=$(echo ${KERNEL} | sed 's/-//')${xanVer}
+        fi
+        
+        # Renomear ISO
+        if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
+            TARGET_ISO_PATH=${NAME}_STABLE_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
+            TARGET_ISO_PATH=${NAME}_RC_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
+            TARGET_ISO_PATH=${NAME}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
+            TARGET_ISO_PATH=${NAME}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
+            TARGET_ISO_PATH=${NAME}_DEVELOPMENT_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
+            TARGET_ISO_PATH=${NAME}_DEVELOPMENT_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
+        fi
+        
+        sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
+        # echo "::set-output name=file-path::$TARGET_ISO_PATH"
+        echo "file-path=$TARGET_ISO_PATH" >> $GITHUB_OUTPUT
+        
         FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        sudo mv "$FILE_PKG" "./${TARGET_ISO_PATH}.pkgs"
-
-        # Remover diretórios de perfis
+        sudo mv $FILE_PKG ./${TARGET_ISO_PATH}.pkgs
+        
         sudo rm -r iso-profiles
-
-        # Listar arquivos no diretório atual
+        
         ls -lh
-
-        # Imprimir o caminho do arquivo ISO
-        echo "${{ steps.image-build.outputs.file-path }}"
+        echo ${{ steps.image-build.outputs.file-path }}
         
     - id: hash
       shell: bash
