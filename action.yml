@@ -677,7 +677,7 @@ runs:
 
         # Configuração do kernel para o nome da ISO
         if [ "$KERNEL" != "xanmod" ]; then
-          KERNEL_NAME="k${KERNEL}"
+          KERNEL_NAME="${KERNEL}"
         elif [ "$KERNEL" = "xanmod" ]; then
           XAN_VER=$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
           KERNEL_NAME="${KERNEL//-/}${XAN_VER}"

@@ -630,10 +630,10 @@ runs:
         echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
         
-        #LABEL
+        # Configuração do nome da ISO
         sudo sed -i "s/label=.*/label=biglinux_${{ inputs.release-tag }}.iso/" iso-profiles/biglinux/$EDITION/profile.conf
         
-        
+        # Remover perfis personalizados
         sudo rm -r iso-profiles/custom-profiles
         
         echo $KERNEL
@@ -648,8 +648,10 @@ runs:
           KERNEL=$(echo ${KERNEL} | sed 's/-//')
         fi
         
+        # Limpar diretório de construção
         sudo rm -Rf /var/lib/manjaro-tools/buildiso/*
-      
+
+        # Encontrar o caminho completo do arquivo ISO mais recente criado no diretório /var/cache/manjaro-tools/iso
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         
         #Kernel Name
@@ -675,17 +677,34 @@ runs:
             TARGET_ISO_PATH=${NAME}_DEVELOPMENT_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
         fi
         
+        # Mover arquivo ISO para o diretório atual
         sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
-        # echo "::set-output name=file-path::$TARGET_ISO_PATH"
         echo "file-path=$TARGET_ISO_PATH" >> $GITHUB_OUTPUT
         
+        # Mover arquivo de pacotes para o diretório atual
         FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        sudo mv $FILE_PKG ./${TARGET_ISO_PATH}.pkgs
+        sudo mv "$FILE_PKG" "./${TARGET_ISO_PATH}.pkgs"
         
+        # Remover diretórios de perfis
         sudo rm -r iso-profiles
         
+        # Listar arquivos no diretório atual
         ls -lh
+
+        # Imprimir o caminho do arquivo ISO
         echo ${{ steps.image-build.outputs.file-path }}
+
+
+
+        # Mover arquivo ISO para o diretório atual
+        OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
+        sudo mv "$OUTPUT_ISO_PATH" "./$TARGET_ISO_PATH"
+        echo "file-path=$TARGET_ISO_PATH" >> "$GITHUB_OUTPUT"
+
+        
+
+
+
         
     - id: hash
       shell: bash
