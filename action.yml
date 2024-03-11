@@ -530,7 +530,6 @@ runs:
         echo ""
         echo "Print pacman-multilib"
         cat /usr/share/manjaro-tools/pacman-multilib.conf
-        # PAREI AQUI!!
 
     - id: checkout-iso-profiles
       shell: bash
@@ -664,17 +663,17 @@ runs:
 
         # Definir nome do arquivo ISO
         if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}"
+          TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
         elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_RC_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}"
+          TARGET_ISO_PATH="${NAME}_RC_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
         elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}"
+          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
         elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}"
+          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
         elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}"
+          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
         elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}"
+          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
         fi
 
         # Configuração do kernel para o nome da ISO
@@ -771,7 +770,7 @@ runs:
 
         RELEASE_TAG=${{ steps.image-build.outputs.file-path }}
         GITHUB_REPO=${{ github.repository }}
-        RELEASE=$(echo "$RELEASE_TAG" | sed 's/_k[0-9]*\.iso//')
+        RELEASE=$(echo "$RELEASE_TAG" | sed 's/_k[0-9]*\.iso$//')
         GITHUB_LINK="https://github.com/$GITHUB_REPO/releases/download/$RELEASE"
 
         if [ "${{ inputs.bigbranch }}" != "beta" ]; then
