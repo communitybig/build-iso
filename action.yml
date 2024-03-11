@@ -755,8 +755,11 @@ runs:
         if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "testing" ]; then
           mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
             -w "https://iso.biglinux.com.br/${{ steps.image-build.outputs.file-path }}" \
-            -w "https://osdn.net/projects/biglinux/storage/${{ steps.image-build.outputs.file-path }}" \
             -o "${{ steps.image-build.outputs.file-path }}.torrent" "${{ steps.image-build.outputs.file-path }}"
+
+          TORRENT_FILE=${{ steps.image-build.outputs.file-path }}.torrent
+          TORRENT_LINK=$(curl -X POST -F "file=@$TORRENT_FILE" https://1337x.to/upload -H "Referer: https://1337x.to/upload" | grep -oP 'https://1337x.to/torrent/\d+/')
+          echo "torrent-link=$TORRENT_LINK" >> $GITHUB_OUTPUT
         fi
     
     - id: upload-github-release
