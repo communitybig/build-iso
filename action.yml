@@ -165,7 +165,7 @@ runs:
             # Baixar o arquivo fonte
             PACMAN_ARCHIVE="pacman-v${LATEST_VERSION}.tar.gz"
             PACMAN_DOWNLOAD_URL="https://gitlab.archlinux.org/pacman/pacman/-/archive/v${LATEST_VERSION}/${PACMAN_ARCHIVE}"
-            wget "$PACMAN_DOWNLOAD_URL"
+            sudo wget "$PACMAN_DOWNLOAD_URL"
 
             # Verificar se o download foi bem-sucedido
             if [ -f "$PACMAN_ARCHIVE" ]; then
@@ -176,7 +176,7 @@ runs:
             fi
 
             # Extrair o arquivo fonte
-            tar -xzf "$PACMAN_ARCHIVE"
+            sudo tar -xzf "$PACMAN_ARCHIVE"
             PACMAN_DIR="pacman-v${LATEST_VERSION}"
 
             pushd "$PACMAN_DIR"
