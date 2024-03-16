@@ -530,7 +530,6 @@ runs:
         echo ""
         echo "Print pacman-multilib"
         cat /usr/share/manjaro-tools/pacman-multilib.conf
-        # PAREI AQUI!!
 
     - id: checkout-iso-profiles
       shell: bash
@@ -557,15 +556,12 @@ runs:
         OFFICE: ${{ inputs.office-chooser }}
         MESA: ${{ inputs.mesa }}
         EXTRAREPO: ${{ inputs.extrarepo }}
+        RELEASE_TAG: ${{ inputs.release-tag }}
       run: |
         ## BigLinux Pre Config Build ISO
         echo "## BigLinux Pre Config Build ISO ##"
         
         #MESA
-        # if [ "$KERNEL" = "oldLts" -a $EDITION != "xivastudio" ]; then
-        #   echo '
-        #   mesa-amber
-        #   lib32-mesa-amber' | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
         if [ "$KERNEL" = "latest" -o "$KERNEL" = "xanmod" ]; then
           echo '
           mesa-tkg-stable
@@ -583,8 +579,6 @@ runs:
           atualLts=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
           KERNEL=$atualLts
         elif [ "$KERNEL" = "latest" ];then
-          # kernelVer=62
-          # kernelVer=$(pacman -Sl | grep linux[0-9] | grep core | grep -vE "rc|headers" | sort | tail -n1 | cut -d " " -f2 | sed 's/linux//')
           kernelVer=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
           echo "linux-latest"  | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
           KERNEL=$kernelVer
@@ -594,117 +588,134 @@ runs:
           KERNEL=-${KERNEL}
         fi
         
-        # Stable
-        if [ "$BIGBRANCH" = "stable" ];then
-          echo "BUILD_RELEASE=${{ inputs.release-tag }}" | cut -d "_" -f1 | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
-        fi
-        
-        # Beta
-        if [ "$BIGBRANCH" = "beta" ];then
-          echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
-        fi
-        
-        # Testing
-        if [ "$BIGBRANCH" = "testing" ];then
-          #add repo testing
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
-          
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
-          
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
-          
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/user-repos.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/live-overlay/etc/pacman.conf
-          sudo sed -i '/\[biglinux-stable\]/{h;s/.*//;p;x;}' iso-profiles/biglinux/$EDITION/root-overlay/etc/pacman.conf
-          
-          echo "BUILD_RELEASE=${{ inputs.release-tag }}" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
-        fi
+        # Configuração do branch BigLinux
+        case "$BIGBRANCH" in
+          stable)
+            echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+            ;;
+          beta)
+            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+            ;;
+          testing)
+            # Adicionar repo testing do BigLinux
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+
+            # Alterar mirrors para testing (Manjaro) apenas se o branch do Manjaro for testing
+            if [ "$MANJAROBRANCH" = "testing" ]; then
+              sudo sed -i 's/stable/testing/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+            fi
+            ;;
+          unstable)
+            # Adicionar repo testing do BigLinux
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+
+            # Alterar mirrors para unstable (Manjaro)
+            sudo sed -i 's/stable/unstable/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+            ;;
+        esac
         
         #Build Release and Unix Time
-        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
-        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/$EDITION/root-overlay/etc/big-release
-        
+        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+
         # Configuração do nome da ISO
-        sudo sed -i "s/label=.*/label=biglinux_${{ inputs.release-tag }}.iso/" iso-profiles/biglinux/$EDITION/profile.conf
-        
+        sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/biglinux/"$EDITION"/profile.conf
+
+        # Definir nome do arquivo ISO
+        if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
+          TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
+          TARGET_ISO_PATH="${NAME}_RC_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
+          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
+          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
+          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
+          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+        fi
+
+        # Configuração do kernel para o nome da ISO
+        if [ "$KERNEL" != "xanmod" ]; then
+          KERNEL_NAME="${KERNEL}"
+        elif [ "$KERNEL" = "xanmod" ]; then
+          XAN_VER=$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
+          KERNEL_NAME="${KERNEL//-/}${XAN_VER}"
+        fi
+
         # Remover perfis personalizados
         sudo rm -r iso-profiles/custom-profiles
-        
-        echo $KERNEL
-        echo $EDITION
-        echo $MANJAROBRANCH
-        echo $BIGBRANCH
-        echo $MESA
-        
-        sudo buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL} ${OFFICE:+-o}
-        
-        if [ -n "$(echo $KERNEL | grep xanmod)" ];then
-          KERNEL=$(echo ${KERNEL} | sed 's/-//')
-        fi
-        
+
+        echo "Kernel: $KERNEL_NAME"
+        echo "Edition: $EDITION"
+        echo "ManjaroBranch: $MANJAROBRANCH"
+        echo "BigLinuxBranch: $BIGBRANCH"
+        echo "MESA: $MESA"
+
+        # Construir a ISO
+        sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
+
         # Limpar diretório de construção
         sudo rm -Rf /var/lib/manjaro-tools/buildiso/*
-
-        # Encontrar o caminho completo do arquivo ISO mais recente criado no diretório /var/cache/manjaro-tools/iso
-        OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        
-        #Kernel Name
-        if [ "$KERNEL" != "xanmod" ];then
-          KERNEL=k${KERNEL}
-        elif [ "$KERNEL" = "xanmod" ];then
-          xanVer=$(grep linux-xanmod $(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}') | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
-          KERNEL=$(echo ${KERNEL} | sed 's/-//')${xanVer}
-        fi
-        
-        # Renomear ISO
-        if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
-            TARGET_ISO_PATH=${NAME}_STABLE_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
-            TARGET_ISO_PATH=${NAME}_RC_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
-            TARGET_ISO_PATH=${NAME}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
-            TARGET_ISO_PATH=${NAME}_BETA_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
-            TARGET_ISO_PATH=${NAME}_DEVELOPMENT_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
-            TARGET_ISO_PATH=${NAME}_DEVELOPMENT_${EDITION}_$(echo ${{ inputs.release-tag }} | cut -d "_" -f1 )_${KERNEL}.iso
-        fi
-        
-        # Mover arquivo ISO para o diretório atual
-        sudo mv $OUTPUT_ISO_PATH ./$TARGET_ISO_PATH
-        echo "file-path=$TARGET_ISO_PATH" >> $GITHUB_OUTPUT
-        
-        # Mover arquivo de pacotes para o diretório atual
-        FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        sudo mv "$FILE_PKG" "./${TARGET_ISO_PATH}.pkgs"
-        
-        # Remover diretórios de perfis
-        sudo rm -r iso-profiles
-        
-        # Listar arquivos no diretório atual
-        ls -lh
-
-        # Imprimir o caminho do arquivo ISO
-        echo ${{ steps.image-build.outputs.file-path }}
-
-
 
         # Mover arquivo ISO para o diretório atual
         OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
         sudo mv "$OUTPUT_ISO_PATH" "./$TARGET_ISO_PATH"
         echo "file-path=$TARGET_ISO_PATH" >> "$GITHUB_OUTPUT"
 
-        
+        # Mover arquivo de pacotes para o diretório atual
+        FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
+        sudo mv "$FILE_PKG" "./${TARGET_ISO_PATH}.pkgs"
 
+        # Remover diretórios de perfis
+        sudo rm -r iso-profiles
 
+        # Listar arquivos no diretório atual
+        ls -lh
 
+        # Imprimir o caminho do arquivo ISO
+        echo "${{ steps.image-build.outputs.file-path }}"
         
     - id: hash
       shell: bash
@@ -716,27 +727,39 @@ runs:
       shell: bash -O extglob {0}
       run: |
         echo "## ssh setup"
-        mkdir -p /home/runner/.ssh
-        touch /home/runner/.ssh/github_actions
-        chmod 600 /home/runner/.ssh/github_actions
-        ssh-agent -a /tmp/ssh_agent.sock > /dev/null
-        # echo "::set-output name=upload-files::./${{ steps.image-build.outputs.file-path }}+(|.sha*|.pkgs|.sig|.torrent|.md5)"
-        echo "upload-files=./${{ steps.image-build.outputs.file-path }}+(|.sha*|.pkgs|.sig|.torrent|.md5)" >> $GITHUB_OUTPUT
         
-        mkdir -p ${{ inputs.edition }}/${{ inputs.version }}
-        
-#     - id: Torrent
-#       shell: bash -O extglob {0}
-#       env:
-#         EXTRAREPO: ${{ inputs.extrarepo }}
-#       run: |
-#         echo "### Torrent ###"
-#         if [ "${{ inputs.bigbranch }}" = "development" ];then
-#           mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
-#           -w "https://iso.biglinux.com.br/${{ steps.image-build.outputs.file-path }}" \
-#           -w "https://osdn.net/projects/biglinux/storage/${{ steps.image-build.outputs.file-path }}" \
-#           -o ${{ steps.image-build.outputs.file-path }}.torrent ${{ steps.image-build.outputs.file-path }}
-#         fi
+        # Definir variáveis de ambiente
+        RUNNER_HOME="/home/runner"
+        SSH_DIR="$RUNNER_HOME/.ssh"
+        SSH_KEY_FILE="$SSH_DIR/github_actions"
+        SSH_AGENT_SOCK="/tmp/ssh_agent.sock"
+
+        # Configurar SSH
+        echo "## ssh setup"
+        mkdir -p "$SSH_DIR"
+        touch "$SSH_KEY_FILE"
+        chmod 600 "$SSH_KEY_FILE"
+        ssh-agent -a "$SSH_AGENT_SOCK" > /dev/null
+
+        # Preparar upload
+        echo "upload-files=${{ steps.image-build.outputs.file-path }}+(|.sha*|.pkgs|.sig|.torrent|.md5)" >> "$GITHUB_OUTPUT"
+        mkdir -p "${{ inputs.edition }}/${{ inputs.version }}"
+
+    - id: Torrent
+      shell: bash -O extglob {0}
+      env:
+        EXTRAREPO: ${{ inputs.extrarepo }}
+      run: |
+        echo "### Torrent ###"
+        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "testing" ]; then
+          mktorrent -v -a udp://tracker.opentrackr.org:1337 -l 21 \
+            -w "https://iso.biglinux.com.br/${{ steps.image-build.outputs.file-path }}" \
+            -o "${{ steps.image-build.outputs.file-path }}.torrent" "${{ steps.image-build.outputs.file-path }}"
+
+          TORRENT_FILE=${{ steps.image-build.outputs.file-path }}.torrent
+          TORRENT_LINK=$(curl -X POST -F "file=@$TORRENT_FILE" https://1337x.to/upload -H "Referer: https://1337x.to/upload" | grep -oP 'https://1337x.to/torrent/\d+/')
+          echo "torrent-link=$TORRENT_LINK" >> $GITHUB_OUTPUT
+        fi
     
     - id: upload-github-release
       shell: bash -O extglob {0}
@@ -744,27 +767,28 @@ runs:
         EXTRAREPO: ${{ inputs.extrarepo }}
       run: |
         echo "### upload-github-release ###"
-        
-        if [ "${{ inputs.bigbranch }}" = "stable" ] || [ "${{ inputs.bigbranch }}" = "testing" ] || [ "${{ inputs.bigbranch }}" = "unstable" ]; then
+
+        RELEASE_TAG=${{ steps.image-build.outputs.file-path }}
+        GITHUB_REPO=${{ github.repository }}
+        RELEASE=$(echo "$RELEASE_TAG" | sed 's/_k[0-9]*\.iso$//')
+        GITHUB_LINK="https://github.com/$GITHUB_REPO/releases/download/$RELEASE"
+
+        if [ "${{ inputs.bigbranch }}" != "beta" ]; then
           echo "## github upload"
-          release=$(echo ${{ steps.image-build.outputs.file-path }} | sed 's/_k[0-9]*\.iso//')
-          
-          echo ${{ github.token }} | gh auth login --with-token
-          gh release create ${release} --title ${release} --repo ${{ github.repository }} --notes "automated release" || echo "release already exists"
+          echo "${{ github.token }}" | gh auth login --with-token
+          gh release create "$RELEASE" --title "$RELEASE" --repo "$GITHUB_REPO" --notes "automated release" || echo "release already exists"
 
-          GITHUB_LINK=https://github.com/${GITHUB_REPOSITORY}/releases/download/${release}
-
-          if [[ -z "$(du --threshold=1950M ${{ steps.image-build.outputs.file-path }})" ]]; then
-            # iso is small enough to upload already
-            gh release upload ${release} --repo ${{ github.repository }} --clobber \
-              ${{ steps.upload-prepare.outputs.upload-files }}
+          if [[ -z "$(du --threshold=1950M "$RELEASE_TAG")" ]]; then
+            # ISO é pequena o suficiente para fazer upload diretamente
+            gh release upload "$RELEASE" --repo "$GITHUB_REPO" --clobber \
+              "${{ steps.upload-prepare.outputs.upload-files }}"
           else
-            # iso is too big - creating a split-zip
-            zip -j -s 1950m ${{ steps.image-build.outputs.file-path }}.zip ${{ steps.image-build.outputs.file-path }}
-            
-            REMOTE_FILES=$(find . -maxdepth 1 -name "*.z*" -exec basename {} \; | xargs -I{} echo "-w \"${GITHUB_LINK}/{}\"")
-            gh release upload ${release} --repo ${{ github.repository }} --clobber \
-              ./${{ steps.image-build.outputs.file-path }}+(.z*|.sha*|.pkgs|.sig|.torrent|.md5)
+            # ISO é muito grande - criando um arquivo ZIP dividido
+            zip -j -s 1990m "$RELEASE_TAG.zip" "$RELEASE_TAG"
+
+            REMOTE_FILES=$(find . -maxdepth 1 -name "*.z*" -exec basename {} \; | xargs -I{} echo "-w \"$GITHUB_LINK/{}\"")
+            gh release upload "$RELEASE" --repo "$GITHUB_REPO" --clobber \
+              "./$RELEASE_TAG"+(.z*|.sha*|.pkgs|.sig|.torrent|.md5)
           fi
         else
           echo "Erro ao subir ISO para o GitHub"

@@ -156,36 +156,48 @@ runs:
       run: |
         echo "### install-pacman ###"
         (
-          sudo git clone --depth 1 https://gitlab.manjaro.org/packages/core/pacman.git
-          pushd pacman
-            # Find the latest stable version of pacman
-            PACMAN_VERSION=$(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.pkgver')
-            echo "Downloading pacman version $PACMAN_VERSION"
-            sudo wget https://sources.archlinux.org/other/pacman/pacman-${PACMAN_VERSION}.tar.xz
-            SHA256SUMS=($(curl -s "https://archlinux.org/packages/core/x86_64/pacman/json/" | jq -r '.sha256sums[]'))
-            for sum in "${SHA256SUMS[@]}"; do
-              echo "${sum} pacman-${PACMAN_VERSION}.tar.xz" | sha256sum --check && break
-            done || exit 1
+          # Obter a última versão do pacman
+          LATEST_VERSION=$(curl -s https://gitlab.archlinux.org/api/v4/projects/pacman%2Fpacman/repository/tags | jq -r '.[0].name' | cut -c2-)
+          echo "Baixando a versão $LATEST_VERSION do pacman"
 
-            sudo tar -xvf pacman-${PACMAN_VERSION}.tar.xz
-            pushd pacman-${PACMAN_VERSION}
-              sudo patch -p1 -i ../pacman-sync-first-option.patch || exit 1
-              sudo meson --prefix=/usr \
-                        --buildtype=plain \
-                        -Ddoc=disabled \
-                        -Ddoxygen=enabled \
-                        -Dscriptlet-shell=/usr/bin/bash \
-                        -Dldconfig=/usr/bin/ldconfig \
-                        build || exit 1
-              sudo meson compile -C build || exit 1
-              sudo meson install -C build || exit 1
-            popd
-            sudo install -m644 pacman.conf /etc/pacman.conf
-            sudo install -m644 makepkg.conf /etc/
-            sudo mkdir -p /etc/pacman.d
-            sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
+          # Baixar o arquivo fonte
+          PACMAN_ARCHIVE="pacman-v${LATEST_VERSION}.tar.gz"
+          PACMAN_DOWNLOAD_URL="https://gitlab.archlinux.org/pacman/pacman/-/archive/v${LATEST_VERSION}/${PACMAN_ARCHIVE}"
+          wget "$PACMAN_DOWNLOAD_URL"
+
+          # Verificar se o download foi bem-sucedido
+          if [ -f "$PACMAN_ARCHIVE" ]; then
+            echo "Download concluído com sucesso"
+          else
+            echo "Erro ao baixar o arquivo $PACMAN_ARCHIVE"
+            exit 1
+          fi
+
+          # Extrair o arquivo fonte
+          tar -xzf "$PACMAN_ARCHIVE"
+          PACMAN_DIR="pacman-v${LATEST_VERSION}"
+
+          # Compilar e instalar o pacman
+          pushd "$PACMAN_DIR"
+            sudo meson --prefix=/usr \
+                      --buildtype=plain \
+                      -Ddoc=disabled \
+                      -Ddoxygen=enabled \
+                      -Dscriptlet-shell=/usr/bin/bash \
+                      -Dldconfig=/usr/bin/ldconfig \
+                      build || exit 1
+            sudo meson compile -C build || exit 1
+            sudo meson install -C build || exit 1
           popd
-          sudo rm -r pacman
+
+          # Configurar o pacman
+          sudo install -m644 pacman.conf /etc/pacman.conf
+          sudo install -m644 makepkg.conf /etc/
+          sudo mkdir -p /etc/pacman.d
+          sudo wget https://raw.githubusercontent.com/BigLinux-Package-Build/manjaro-mirror/main/mirrorlist -O /etc/pacman.d/mirrorlist
+
+          # Limpar o diretório temporário
+          sudo rm -r "$PACMAN_DIR" "$PACMAN_ARCHIVE"
         ) || exit 1
 
     - id: install-keyrings
@@ -650,7 +662,9 @@ runs:
             echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
 
             # Alterar mirrors para unstable (Manjaro)
-            sudo sed -i 's/stable/unstable/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+            if [ "$MANJAROBRANCH" = "unstable" ]; then
+              sudo sed -i 's/stable/unstable/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+            fi
             ;;
         esac
         
