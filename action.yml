@@ -503,11 +503,11 @@ runs:
             echo '[biglinux-testing]
             SigLevel = PackageRequired
             Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
-          # Adicione o repositório de teste se biglinux=testing e manjaro=unstable
-          elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
-            echo '[biglinux-testing]
+          # Adicione o repositório de unstable se biglinux=unstable e manjaro=unstable
+          elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+            echo '[biglinux-quebra-systema]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+            Server = https://devdevdev.biglinux.com.br/quebra-systema/$arch' | sudo tee -a "$arquivo_conf"
           fi
 
           # Adicione o repositório biglinux-stable
@@ -637,8 +637,8 @@ runs:
             fi
             ;;
           unstable)
-            # Adicionar repo testing do BigLinux
-            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
+            # Adicionar repo unstable do BigLinux
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-quebra-systema\]/;p;x;}'
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
@@ -648,7 +648,7 @@ runs:
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
 
-            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}'
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/devdevdev.biglinux.com.br\/quebra-systema\/$arch/;p;x;}'
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
@@ -666,7 +666,7 @@ runs:
             fi
             ;;
         esac
-        
+
         #Build Release and Unix Time
         echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
         echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
@@ -675,19 +675,17 @@ runs:
         sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/biglinux/"$EDITION"/profile.conf
 
         # Definir nome do arquivo ISO
-        if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_RC_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        fi
+        case "$MANJAROBRANCH/$BIGBRANCH" in
+            stable/stable)
+                TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+                ;;
+            stable/testing|testing/stable|testing/testing)
+                TARGET_ISO_PATH="${NAME}_TESTING_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+                ;;
+            unstable/testing|unstable/unstable)
+                TARGET_ISO_PATH="${NAME}_UNSTABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+                ;;
+        esac
 
         # Configuração do kernel para o nome da ISO
         if [ "$KERNEL" != "xanmod" ]; then
