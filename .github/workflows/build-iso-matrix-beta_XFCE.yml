@@ -60,10 +60,6 @@ jobs:
           repo-unstable: ${{ secrets.REPO_UNSTABLE }}
           mirror-dev: ${{ secrets.MIRROR_DEV }}
           
-      # Configuração do TMATE para sessão de depuração
-      - name: Setup TMATE Session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
 
       # Verifica MD5SUM
       - name: Verify md5sum
@@ -91,6 +87,11 @@ jobs:
           mkdir -p /home/runner/.ssh
           touch /home/runner/.ssh/github_actions
           chmod 600 /home/runner/.ssh/github_actions
+      
+      # Configuração do TMATE para sessão de depuração
+      - name: Setup TMATE Session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       
       # Publica no github
       - name: Publish Package on GitHub
