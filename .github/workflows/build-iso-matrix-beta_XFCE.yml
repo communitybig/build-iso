@@ -57,8 +57,66 @@ jobs:
           iso-profiles-repo: 'https://github.com/talesam/iso-profiles'
           release-tag: ${{ needs.prepare-release.outputs.release_tag }}
           tmate: ${{ inputs.debug_enabled }}
+          repo-unstable: ${{ REPO_UNSTABLE }}
+          mirror-dev: ${{ MIRROR_DEV }}
           
       # Configuração do TMATE para sessão de depuração
       - name: Setup TMATE Session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
+      # Verifica MD5SUM
+      - name: Verify md5sum
+        shell: bash
+        run: |
+          mkdir mnt
+          find -type f -iname "*.iso" -exec sudo mount -o loop {} mnt \;
+          pushd mnt/manjaro/x86_64/
+            for i in *.md5; do 
+              if [ "$(md5sum -c $i | cut -d " " -f2)" != "OK" ]; then
+                echo "deu ruim no md5dum do arquivo $i"
+                exit 1
+              else
+                echo "md5sum do arquivo $i está OK"
+              fi
+            done
+          popd
+          sudo umount mnt
+
+      # Prepara Upload
+      - name: upload-prepare
+        shell: bash -O extglob {0}
+        run: |
+          echo "## ssh setup"
+          mkdir -p /home/runner/.ssh
+          touch /home/runner/.ssh/github_actions
+          chmod 600 /home/runner/.ssh/github_actions
+      
+      # Publica no github
+      - name: Publish Package on GitHub
+        shell: bash
+        run: |
+          ls -lh
+          release=$(find . -name *.iso | cut -d "/" -f2 | sed 's/.iso//')
+          zip -j -0 -s 1950m ${release}.zip ${release}.iso
+          ls -lh
+          echo ${{ secrets.TOKEN_RELEASE }} | gh auth login --with-token
+          gh release create ${release} --title ${release} --repo ${{ secrets.REPO_ISO }} --notes "automated release from CI/CD" || echo "release already exists"
+          for i in *.z* *.md5 *.pkgs; do 
+            gh release upload ${release} --repo ${{ secrets.REPO_ISO }} --clobber $i
+          done
+    
+      # Envia para o GitHub
+      - name: Upload Release_Tag
+        shell: bash
+        run: |
+          echo "${{ secrets.SSH_UPLOAD }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          git clone git@github.com:talesam/iso-community.git
+          cd iso-community
+          echo ${{ needs.prepare-release.outputs.release_tag }} >> testing
+          git add --all
+          git config --local user.email "${{ secrets.GIT_USER }}@users.noreply.github.com"
+          git config --local user.name "${{ secrets.GIT_USER }}"
+          git commit -m "new release"
+          git push
