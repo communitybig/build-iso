@@ -64,3 +64,94 @@ jobs:
       - name: Setup TMATE Session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
+      # Verifica MD5SUM
+      - name: Verify md5sum
+        shell: bash
+        run: |
+          mkdir mnt
+          find -type f -iname "*.iso" -exec sudo mount -o loop {} mnt \;
+          pushd mnt/manjaro/x86_64/
+            for i in *.md5; do 
+              if [ "$(md5sum -c $i | cut -d " " -f2)" != "OK" ]; then
+                echo "deu ruim no md5dum do arquivo $i"
+                exit 1
+              else
+                echo "md5sum do arquivo $i está OK"
+              fi
+            done
+          popd
+          sudo umount mnt
+
+      # Prepara Upload
+      - name: upload-prepare
+        shell: bash -O extglob {0}
+        run: |
+          echo "## ssh setup"
+          mkdir -p /home/runner/.ssh
+          touch /home/runner/.ssh/github_actions
+          chmod 600 /home/runner/.ssh/github_actions
+      
+      # Configuração do TMATE para sessão de depuração
+      - name: Setup TMATE Session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+      
+      # Upload da ISO
+      - name: Publish Package on GitHub
+        shell: bash
+        run: |
+          # Enviar arquivo ISO e MD5 para o Telegram
+          telegram_token="${{ secrets.ISO_TOKEN_BOT }}"
+          chat_id="${{ secrets.ID_CANAL_TELEGRAM }}"
+
+          # Encontrar o nome do arquivo ISO
+          iso_file=$(find . -name "*.iso" | head -n 1)
+          iso_name=$(basename "$iso_file")
+          tag_name="${iso_name%.*}"
+
+          # Encontrar o arquivo MD5 correspondente
+          md5_file="${iso_file%.iso}.md5"
+
+          # Enviar mensagem com o nome da tag
+          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendMessage" \
+              -d "chat_id=${chat_id}" \
+              -d "text=*${tag_name}*\n\n" \
+              -d "parse_mode=MarkdownV2"
+
+          # Enviar arquivo ISO
+          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendDocument" \
+              -F "chat_id=${chat_id}" \
+              -F "document=@${iso_file}" \
+              -F "caption=💿 ${iso_name}" \
+              > /dev/null
+
+          if [ $? -eq 0 ]; then
+              echo "✅ Arquivo ISO enviado com sucesso"
+          else
+              echo "❌ Erro ao enviar arquivo ISO"
+          fi
+
+          # Enviar arquivo MD5
+          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendDocument" \
+              -F "chat_id=${chat_id}" \
+              -F "document=@${md5_file}" \
+              -F "caption=🔑 ${md5_file##*/}" \
+              > /dev/null
+
+          if [ $? -eq 0 ]; then
+              echo "✅ Arquivo MD5 enviado com sucesso"
+          else
+              echo "❌ Erro ao enviar arquivo MD5"
+          fi
+
+          # Quebra o arquivo e faz upload
+          ls -lh
+          release=$(find . -name *.iso | cut -d "/" -f2 | sed 's/.iso//')
+          zip -j -0 -s 1950m ${release}.zip ${release}.iso
+          ls -lh
+          echo ${{ secrets.TOKEN_RELEASE }} | gh auth login --with-token
+          gh release create ${release} --title ${release} --repo ${{ secrets.REPO_ISO }} --notes "automated release from CI/CD" || echo "release already exists"
+          for i in *.z* *.md5 *.pkgs; do
+            gh release upload ${release} --repo ${{ secrets.REPO_ISO }} --clobber $i
+          done

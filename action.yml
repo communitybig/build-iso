@@ -503,17 +503,20 @@ runs:
           if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
             echo '[biglinux-testing]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
           # Adicione o repositório de teste se biglinux=testing e manjaro=testing
           elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
             echo '[biglinux-testing]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
           # Adicione o repositório de unstable se biglinux=unstable e manjaro=unstable
           elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
             echo '[biglinux-${{ inputs.repo-unstable }}]
             SigLevel = PackageRequired
             Server = https://${{ inputs.mirror-dev }}.biglinux.com.br/${{ inputs.repo-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://${{ inputs.mirror-dev }}.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
           fi
 
           # Adicione o repositório biglinux-stable
@@ -663,6 +666,20 @@ runs:
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            # Adicionar repo testing do BigLinux
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            #SigLevel = Never
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            #SigLevel = Never
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            #SigLevel = Never
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
 
             echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
 
