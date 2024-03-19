@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Unstable / B:Testing - Unstable KDE
+name: M:Unstable / B:Unstable - Unstable KDE
 
 # Gatilhos para o workflow
 on:
@@ -41,7 +41,7 @@ jobs:
         NAME: [biglinux] # Define o nome do SO
         EDITION: [kde-unstable] # Define a edição
         MANJAROBRANCH: [unstable] # Define a branch do Manjaro (stable, testing ou unstable)
-        BIGBRANCH: [testing] # Define a branch do Biglinux (stable ou testing)
+        BIGBRANCH: [unstable] # Define a branch do Biglinux (stable ou testing)
         KERNEL: [latest] # Define a versão do kernel (atualLts, latest)
         
     steps:
