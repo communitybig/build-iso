@@ -57,8 +57,8 @@ jobs:
           iso-profiles-repo: 'https://github.com/talesam/iso-profiles'
           release-tag: ${{ needs.prepare-release.outputs.release_tag }}
           tmate: ${{ inputs.debug_enabled }}
-          repo-unstable: ${{ REPO_UNSTABLE }}
-          mirror-dev: ${{ MIRROR_DEV }}
+          repo-unstable: ${{ secrets.REPO_UNSTABLE }}
+          mirror-dev: ${{ secrets.MIRROR_DEV }}
           
       # Configuração do TMATE para sessão de depuração
       - name: Setup TMATE Session
