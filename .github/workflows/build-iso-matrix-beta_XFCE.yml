@@ -109,36 +109,25 @@ jobs:
           # Encontrar o arquivo MD5 correspondente
           md5_file="${iso_file%.iso}.md5"
 
-          # Enviar mensagem com o nome da tag
-          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendMessage" \
-              -d "chat_id=${chat_id}" \
-              -d "text=*${tag_name}*\n\n" \
-              -d "parse_mode=MarkdownV2"
+          # Preparar a mensagem
+          message="*${tag_name//-/\\-}*\n\n"
+          message="${message//\"/\\\"}" # Escapar aspas duplas
+          message+="💿 ISO: \`${iso_name}\`\n"
+          message+="🔑 MD5: \`${md5_file##*/}\`\n\n"
 
-          # Enviar arquivo ISO
-          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendDocument" \
-              -F "chat_id=${chat_id}" \
-              -F "document=@${iso_file}" \
-              -F "caption=💿 ${iso_name}" \
-              > /dev/null
-
-          if [ $? -eq 0 ]; then
-              echo "✅ Arquivo ISO enviado com sucesso"
-          else
-              echo "❌ Erro ao enviar arquivo ISO"
-          fi
-
-          # Enviar arquivo MD5
-          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendDocument" \
-              -F "chat_id=${chat_id}" \
-              -F "document=@${md5_file}" \
-              -F "caption=🔑 ${md5_file##*/}" \
-              > /dev/null
+          # Enviar mensagem com arquivos
+          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendMediaGroup" \
+            -F "chat_id=${chat_id}" \
+            -F "media=@${iso_file}" \
+            -F "media=@${md5_file}" \
+            -F "caption=${message}" \
+            -F "parse_mode=MarkdownV2" \
+            > /dev/null
 
           if [ $? -eq 0 ]; then
-              echo "✅ Arquivo MD5 enviado com sucesso"
+              echo "✅ Arquivos enviados com sucesso"
           else
-              echo "❌ Erro ao enviar arquivo MD5"
+              echo "❌ Erro ao enviar arquivos"
           fi
 
           # Quebra o arquivo e faz upload
@@ -151,18 +140,3 @@ jobs:
           for i in *.z* *.md5 *.pkgs; do
             gh release upload ${release} --repo ${{ secrets.REPO_ISO }} --clobber $i
           done
-
-      
-      # # Quebra o arquivo e faz upload
-      # - name: Publish Package on GitHub
-      #   shell: bash
-      #   run: |
-      #     ls -lh
-      #     release=$(find . -name *.iso | cut -d "/" -f2 | sed 's/.iso//')
-      #     zip -j -0 -s 1950m ${release}.zip ${release}.iso
-      #     ls -lh
-      #     echo ${{ secrets.TOKEN_RELEASE }} | gh auth login --with-token
-      #     gh release create ${release} --title ${release} --repo ${{ secrets.REPO_ISO }} --notes "automated release from CI/CD" || echo "release already exists"
-      #     for i in *.z* *.md5 *.pkgs; do 
-      #       gh release upload ${release} --repo ${{ secrets.REPO_ISO }} --clobber $i
-      #     done
