@@ -504,11 +504,22 @@ runs:
             echo '[biglinux-testing]
             SigLevel = PackageRequired
             Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          
           # Adicione o repositório de teste se biglinux=testing e manjaro=testing
           elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
             echo '[biglinux-testing]
             SigLevel = PackageRequired
             Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          
+          # Adicione o repositório de teste se biglinux=unstable e manjaro=testing
+          elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
+            echo '[biglinux-${{ inputs.repo-unstable }}]
+            SigLevel = PackageRequired
+            Server = https://${{ inputs.mirror-dev }}.biglinux.com.br/${{ inputs.repo-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
+            Server = https://${{ inputs.mirror-dev }}.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          
           # Adicione o repositório de unstable se biglinux=unstable e manjaro=unstable
           elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
             echo '[biglinux-${{ inputs.repo-unstable }}]
@@ -562,7 +573,7 @@ runs:
     - name: Setup TMATE Session
       uses: mxschmitt/action-tmate@v3
       if: "${{ inputs.tmate == 'true' }}"
-      
+
     - id: image-build
       shell: bash
       env:
@@ -613,9 +624,9 @@ runs:
           stable)
             echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
             ;;
-          beta)
-            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-            ;;
+          # beta)
+          #   echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+          #   ;;
           testing)
             # Adicionar repo testing do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
