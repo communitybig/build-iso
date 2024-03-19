@@ -624,9 +624,6 @@ runs:
           stable)
             echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
             ;;
-          # beta)
-          #   echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-          #   ;;
           testing)
             # Adicionar repo testing do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
@@ -768,28 +765,6 @@ runs:
         echo "## calculating hashes"
         md5sum ${{ steps.image-build.outputs.file-path }} >${{ steps.image-build.outputs.file-path }}.md5
         
-#     - id: upload-prepare
-#       shell: bash -O extglob {0}
-#       run: |
-#         echo "## ssh setup"
-#         
-#         # Definir variáveis de ambiente
-#         RUNNER_HOME="/home/runner"
-#         SSH_DIR="$RUNNER_HOME/.ssh"
-#         SSH_KEY_FILE="$SSH_DIR/github_actions"
-#         SSH_AGENT_SOCK="/tmp/ssh_agent.sock"
-# 
-#         # Configurar SSH
-#         echo "## ssh setup"
-#         mkdir -p "$SSH_DIR"
-#         touch "$SSH_KEY_FILE"
-#         chmod 600 "$SSH_KEY_FILE"
-#         ssh-agent -a "$SSH_AGENT_SOCK" > /dev/null
-# 
-#         # Preparar upload
-#         echo "upload-files=${{ steps.image-build.outputs.file-path }}+(|.sha*|.pkgs|.sig|.torrent|.md5)" >> "$GITHUB_OUTPUT"
-#         mkdir -p "${{ inputs.edition }}/${{ inputs.version }}"
-
     - id: Torrent
       shell: bash -O extglob {0}
       env:
@@ -805,36 +780,3 @@ runs:
           TORRENT_LINK=$(curl -X POST -F "file=@$TORRENT_FILE" https://1337x.to/upload -H "Referer: https://1337x.to/upload" | grep -oP 'https://1337x.to/torrent/\d+/')
           echo "torrent-link=$TORRENT_LINK" >> $GITHUB_OUTPUT
         fi
-    
-    # - id: upload-github-release
-    #   shell: bash -O extglob {0}
-    #   env:
-    #     EXTRAREPO: ${{ inputs.extrarepo }}
-    #   run: |
-    #     echo "### upload-github-release ###"
-    # 
-    #     RELEASE_TAG=${{ steps.image-build.outputs.file-path }}
-    #     GITHUB_REPO=${{ github.repository }}
-    #     RELEASE=$(echo "$RELEASE_TAG" | sed 's/_k[0-9]*\.iso$//')
-    #     GITHUB_LINK="https://github.com/$GITHUB_REPO/releases/download/$RELEASE"
-    # 
-    #     if [ "${{ inputs.bigbranch }}" != "beta" ]; then
-    #       echo "## github upload"
-    #       echo "${{ github.token }}" | gh auth login --with-token
-    #       gh release create "$RELEASE" --title "$RELEASE" --repo "$GITHUB_REPO" --notes "automated release" || echo "release already exists"
-    # 
-    #       if [[ -z "$(du --threshold=1950M "$RELEASE_TAG")" ]]; then
-    #         # ISO é pequena o suficiente para fazer upload diretamente
-    #         gh release upload "$RELEASE" --repo "$GITHUB_REPO" --clobber \
-    #           "${{ steps.upload-prepare.outputs.upload-files }}"
-    #       else
-    #         # ISO é muito grande - criando um arquivo ZIP dividido
-    #         zip -j -s 1990m "$RELEASE_TAG.zip" "$RELEASE_TAG"
-    # 
-    #         REMOTE_FILES=$(find . -maxdepth 1 -name "*.z*" -exec basename {} \; | xargs -I{} echo "-w \"$GITHUB_LINK/{}\"")
-    #         gh release upload "$RELEASE" --repo "$GITHUB_REPO" --clobber \
-    #           "./$RELEASE_TAG"+(.z*|.sha*|.pkgs|.sig|.torrent|.md5)
-    #       fi
-    #     else
-    #       echo "Erro ao subir ISO para o GitHub"
-    #     fi

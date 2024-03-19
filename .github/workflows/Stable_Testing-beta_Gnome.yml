@@ -103,47 +103,17 @@ jobs:
       # Upload da ISO
       - name: Publish Package on GitHub
         shell: bash
+        run: | 
+      # Quebra o arquivo e faz upload
+      - name: Publish Package on GitHub
+        shell: bash
         run: |
-          # Enviar arquivo ISO e MD5 para o Telegram
-          telegram_token="${{ secrets.ISO_TOKEN_BOT }}"
-          chat_id="${{ secrets.ID_CANAL_TELEGRAM }}"
-
-          # Encontrar o nome do arquivo ISO
-          iso_file=$(find . -name "*.iso" | head -n 1)
-          iso_name=$(basename "$iso_file")
-          tag_name="${iso_name%.*}"
-
-          # Encontrar o arquivo MD5 correspondente
-          md5_file="${iso_file%.iso}.md5"
-
-          # Preparar a mensagem
-          message="*${tag_name//-/\\-}*\n\n"
-          message="${message//\"/\\\"}" # Escapar aspas duplas
-          message+="💿 ISO: \`${iso_name}\`\n"
-          message+="🔑 MD5: \`${md5_file##*/}\`\n\n"
-
-          # Enviar mensagem com arquivos
-          curl -s -X POST "https://api.telegram.org/bot${telegram_token}/sendMediaGroup" \
-            -F "chat_id=${chat_id}" \
-            -F "media=@${iso_file}" \
-            -F "media=@${md5_file}" \
-            -F "caption=${message}" \
-            -F "parse_mode=MarkdownV2" \
-            > /dev/null
-
-          if [ $? -eq 0 ]; then
-              echo "✅ Arquivos enviados com sucesso"
-          else
-              echo "❌ Erro ao enviar arquivos"
-          fi
-
-          # Quebra o arquivo e faz upload
           ls -lh
           release=$(find . -name *.iso | cut -d "/" -f2 | sed 's/.iso//')
-          zip -j -0 -s 1950m ${release}.zip ${release}.iso
+          zip -j -0 -s 2000m ${release}.zip ${release}.iso
           ls -lh
           echo ${{ secrets.TOKEN_RELEASE }} | gh auth login --with-token
           gh release create ${release} --title ${release} --repo ${{ secrets.REPO_ISO }} --notes "automated release from CI/CD" || echo "release already exists"
-          for i in *.z* *.md5 *.pkgs; do
+          for i in *.z* *.md5 *.pkgs; do 
             gh release upload ${release} --repo ${{ secrets.REPO_ISO }} --clobber $i
           done
