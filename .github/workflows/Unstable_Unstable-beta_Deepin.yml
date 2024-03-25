@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Testing / B:Testing - Beta Deepin
+name: M:Unstable / B:Unstable - Unstable Deepin
 
 # Gatilhos para o workflow
 on:
