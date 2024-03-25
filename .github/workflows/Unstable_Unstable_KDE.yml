@@ -91,17 +91,8 @@ jobs:
       - name: Setup TMATE Session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-
-      # Configuração do TMATE para sessão de depuração
-      - name: Setup TMATE Session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       
       # Upload da ISO
-      - name: Publish Package on GitHub
-        shell: bash
-        run: | 
-      # Quebra o arquivo e faz upload
       - name: Publish Package on GitHub
         shell: bash
         run: |
