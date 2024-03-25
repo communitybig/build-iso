@@ -1,0 +1,80 @@
+name: 'Build ISO'
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Nome da distribuição'
+        required: true
+        default: 'biglinux'
+      edition:
+        description: 'Edição da ISO'
+        required: true
+        default: 'xfce'
+      manjarobranch:
+        description: 'Branch do Manjaro'
+        required: true
+        default: 'stable'
+      bigbranch:
+        description: 'Branch do BigLinux'
+        required: true
+        default: 'stable'
+      scope:
+        description: 'Escopo da construção'
+        required: false
+        default: ''
+      kernel:
+        description: 'Kernel a ser utilizado'
+        required: true
+        default: 'linux59'
+      office-chooser:
+        description: 'Instalar LibreOffice'
+        required: false
+        default: ''
+      mesa:
+        description: 'Instalar MESA TKG'
+        required: false
+        default: ''
+      extrarepo:
+        description: 'Adicionar repositório extra'
+        required: false
+        default: ''
+      release-tag:
+        description: 'Tag de lançamento'
+        required: true
+        default: '22.0.1'
+      iso-profiles-repo:
+        description: 'Repositório dos perfis de ISO'
+        required: true
+        default: 'https://github.com/biglinux/iso-profiles.git'
+      iso-profiles-branch:
+        description: 'Branch dos perfis de ISO'
+        required: false
+        default: ''
+      create-release:
+        description: 'Criar uma nova release'
+        required: false
+        default: 'true'
+      prerelease:
+        description: 'Marcar como pre-release'
+        required: false
+        default: 'true'
+      tmate:
+        description: 'Iniciar sessão TMATE'
+        required: false
+        default: 'true'
+      repo-unstable:
+        description: 'Repositório Unstable'
+        required: true
+      mirror-dev:
+        description: 'Mirror dev'
+        required: true
+
+jobs:
+
+  build:
+    runs-on: archlinux-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+
