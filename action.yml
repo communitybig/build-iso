@@ -699,7 +699,9 @@ runs:
             echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
 
             # Alterar mirrors para unstable (Manjaro)
-            if [ "$MANJAROBRANCH" = "unstable" ]; then
+            if [ "$MANJAROBRANCH" = "testing" ]; then
+              sudo sed -i 's/stable/testing/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+            elif [ "$MANJAROBRANCH" = "unstable" ]; then
               sudo sed -i 's/stable/unstable/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
             fi
             ;;
