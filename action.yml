@@ -717,7 +717,7 @@ runs:
             stable/stable)
                 TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
                 ;;
-            stable/testing|testing/stable|testing/testing)
+            stable/testing|testing/stable|testing/testing|testing/unstable)
                 TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
                 ;;
             unstable/testing|unstable/unstable)
