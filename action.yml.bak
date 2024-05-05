@@ -44,7 +44,13 @@ inputs:
   tmate:
     description: 'run tmate'
     required: false
-    
+  repo-unstable:
+    description: 'Repositório Unstable'
+    required: true
+  mirror-dev:
+    description: 'Mirror dev'
+    required: true
+
 outputs:
   file-path:
     description: "path of the generated iso"
@@ -493,18 +499,32 @@ runs:
               ;;
           esac
 
-          # Adicione o repositório de teste se biglinux=testing e manjaro=stable
+          # Adicione o repositório biglinux=testing e manjaro=stable
           if [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "stable" ]; then
             echo '[biglinux-testing]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
-          # Adicione o repositório de teste se biglinux=testing e manjaro=testing
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          
+          # Adicione o repositório biglinux=testing e manjaro=testing
           elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
             echo '[biglinux-testing]
             SigLevel = PackageRequired
+            Server = http://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
+          
+          # Adicione o repositório biglinux=unstable e manjaro=testing
+          elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
+            echo '[biglinux-${{ inputs.repo-unstable }}]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/${{ inputs.repo-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
+            echo '[biglinux-testing]
+            SigLevel = PackageRequired
             Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
-          # Adicione o repositório de teste se biglinux=testing e manjaro=unstable
-          elif [ "${{ inputs.bigbranch }}" = "testing" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+          
+          # Adicione o repositório biglinux=unstable e manjaro=unstable
+          elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
+            echo '[biglinux-${{ inputs.repo-unstable }}]
+            SigLevel = PackageRequired
+            Server = https://repo.biglinux.com.br/${{ inputs.repo-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
             echo '[biglinux-testing]
             SigLevel = PackageRequired
             Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
@@ -553,7 +573,7 @@ runs:
     - name: Setup TMATE Session
       uses: mxschmitt/action-tmate@v3
       if: "${{ inputs.tmate == 'true' }}"
-      
+
     - id: image-build
       shell: bash
       env:
@@ -604,9 +624,6 @@ runs:
           stable)
             echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
             ;;
-          beta)
-            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-            ;;
           testing)
             # Adicionar repo testing do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
@@ -637,6 +654,27 @@ runs:
             fi
             ;;
           unstable)
+            # Adicionar repo unstable do BigLinux
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-${{ inputs.repo-unstable }}\]/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/${{ inputs.repo-unstable }}\/$arch/;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+
             # Adicionar repo testing do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
@@ -661,12 +699,14 @@ runs:
             echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
 
             # Alterar mirrors para unstable (Manjaro)
-            if [ "$MANJAROBRANCH" = "unstable" ]; then
+            if [ "$MANJAROBRANCH" = "testing" ]; then
+              sudo sed -i 's/stable/testing/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+            elif [ "$MANJAROBRANCH" = "unstable" ]; then
               sudo sed -i 's/stable/unstable/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
             fi
             ;;
         esac
-        
+
         #Build Release and Unix Time
         echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
         echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
@@ -675,19 +715,17 @@ runs:
         sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/biglinux/"$EDITION"/profile.conf
 
         # Definir nome do arquivo ISO
-        if [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "stable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_RC_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "testing" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "stable" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        elif [ "$MANJAROBRANCH" = "unstable" ] && [ "$BIGBRANCH" = "testing" ]; then
-          TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
-        fi
+        case "$MANJAROBRANCH/$BIGBRANCH" in
+            stable/stable)
+                TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+                ;;
+            stable/testing|testing/stable|testing/testing|testing/unstable)
+                TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+                ;;
+            unstable/testing|unstable/unstable)
+                TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_$(echo "$RELEASE_TAG" | cut -d "_" -f1)_${KERNEL:+k}${KERNEL}.iso"
+                ;;
+        esac
 
         # Configuração do kernel para o nome da ISO
         if [ "$KERNEL" != "xanmod" ]; then
@@ -736,28 +774,6 @@ runs:
         echo "## calculating hashes"
         md5sum ${{ steps.image-build.outputs.file-path }} >${{ steps.image-build.outputs.file-path }}.md5
         
-    - id: upload-prepare
-      shell: bash -O extglob {0}
-      run: |
-        echo "## ssh setup"
-        
-        # Definir variáveis de ambiente
-        RUNNER_HOME="/home/runner"
-        SSH_DIR="$RUNNER_HOME/.ssh"
-        SSH_KEY_FILE="$SSH_DIR/github_actions"
-        SSH_AGENT_SOCK="/tmp/ssh_agent.sock"
-
-        # Configurar SSH
-        echo "## ssh setup"
-        mkdir -p "$SSH_DIR"
-        touch "$SSH_KEY_FILE"
-        chmod 600 "$SSH_KEY_FILE"
-        ssh-agent -a "$SSH_AGENT_SOCK" > /dev/null
-
-        # Preparar upload
-        echo "upload-files=${{ steps.image-build.outputs.file-path }}+(|.sha*|.pkgs|.sig|.torrent|.md5)" >> "$GITHUB_OUTPUT"
-        mkdir -p "${{ inputs.edition }}/${{ inputs.version }}"
-
     - id: Torrent
       shell: bash -O extglob {0}
       env:
@@ -772,37 +788,4 @@ runs:
           TORRENT_FILE=${{ steps.image-build.outputs.file-path }}.torrent
           TORRENT_LINK=$(curl -X POST -F "file=@$TORRENT_FILE" https://1337x.to/upload -H "Referer: https://1337x.to/upload" | grep -oP 'https://1337x.to/torrent/\d+/')
           echo "torrent-link=$TORRENT_LINK" >> $GITHUB_OUTPUT
-        fi
-    
-    - id: upload-github-release
-      shell: bash -O extglob {0}
-      env:
-        EXTRAREPO: ${{ inputs.extrarepo }}
-      run: |
-        echo "### upload-github-release ###"
-
-        RELEASE_TAG=${{ steps.image-build.outputs.file-path }}
-        GITHUB_REPO=${{ github.repository }}
-        RELEASE=$(echo "$RELEASE_TAG" | sed 's/_k[0-9]*\.iso$//')
-        GITHUB_LINK="https://github.com/$GITHUB_REPO/releases/download/$RELEASE"
-
-        if [ "${{ inputs.bigbranch }}" != "beta" ]; then
-          echo "## github upload"
-          echo "${{ github.token }}" | gh auth login --with-token
-          gh release create "$RELEASE" --title "$RELEASE" --repo "$GITHUB_REPO" --notes "automated release" || echo "release already exists"
-
-          if [[ -z "$(du --threshold=1950M "$RELEASE_TAG")" ]]; then
-            # ISO é pequena o suficiente para fazer upload diretamente
-            gh release upload "$RELEASE" --repo "$GITHUB_REPO" --clobber \
-              "${{ steps.upload-prepare.outputs.upload-files }}"
-          else
-            # ISO é muito grande - criando um arquivo ZIP dividido
-            zip -j -s 1990m "$RELEASE_TAG.zip" "$RELEASE_TAG"
-
-            REMOTE_FILES=$(find . -maxdepth 1 -name "*.z*" -exec basename {} \; | xargs -I{} echo "-w \"$GITHUB_LINK/{}\"")
-            gh release upload "$RELEASE" --repo "$GITHUB_REPO" --clobber \
-              "./$RELEASE_TAG"+(.z*|.sha*|.pkgs|.sig|.torrent|.md5)
-          fi
-        else
-          echo "Erro ao subir ISO para o GitHub"
         fi
