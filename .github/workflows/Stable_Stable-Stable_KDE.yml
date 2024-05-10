@@ -1,5 +1,6 @@
 # Nome do workflow
-name: M:Stable / B:Stable - Stable KDE
+#name: KDE M:Stable / B:Stable - Stable
+name: KDE M:✅ / B:✅ - Stable
 
 # Gatilhos para o workflow
 on:
