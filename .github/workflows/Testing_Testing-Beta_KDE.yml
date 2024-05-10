@@ -1,5 +1,5 @@
 # Nome do workflow
-name: KDE M:Testing / B:Testing - Beta
+name: KDE M:🛠️ / B:🛠️ - Beta
 
 # Gatilhos para o workflow
 on:
