@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Unstable / B:Unstable - Unstable KDE
+name: KDE M:Unstable / B:Unstable - Development
 
 # Gatilhos para o workflow
 on:

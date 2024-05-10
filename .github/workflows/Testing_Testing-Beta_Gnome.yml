@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Stable / B:Testing - Beta XFCE
+name: Gnome M:Testing / B:Testing - Beta
 
 # Gatilhos para o workflow
 on:
@@ -39,10 +39,10 @@ jobs:
     strategy:
       matrix:
         NAME: [biglinux] # Define o nome do SO
-        EDITION: [xfce] # Define a edição
-        MANJAROBRANCH: [stable] # Define a branch do Manjaro (stable, testing ou unstable)
+        EDITION: [gnome] # Define a edição
+        MANJAROBRANCH: [testing] # Define a branch do Manjaro (stable, testing ou unstable)
         BIGBRANCH: [testing] # Define a branch do Biglinux (stable ou testing)
-        KERNEL: [atualLts] # Define a versão do kernel (atualLts, latest)
+        KERNEL: [latest] # Define a versão do kernel (atualLts, latest)
         
     steps:
       - name: Build and Upload GitHub

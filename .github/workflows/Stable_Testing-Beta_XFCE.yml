@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Unstable / B:Unstable - XFCE
+name: XFCE M:Stable / B:Testing - Beta
 
 # Gatilhos para o workflow
 on:
@@ -40,9 +40,9 @@ jobs:
       matrix:
         NAME: [biglinux] # Define o nome do SO
         EDITION: [xfce] # Define a edição
-        MANJAROBRANCH: [unstable] # Define a branch do Manjaro (stable, testing ou unstable)
-        BIGBRANCH: [unstable] # Define a branch do Biglinux (stable ou testing)
-        KERNEL: [latest] # Define a versão do kernel (atualLts, latest)
+        MANJAROBRANCH: [stable] # Define a branch do Manjaro (stable, testing ou unstable)
+        BIGBRANCH: [testing] # Define a branch do Biglinux (stable ou testing)
+        KERNEL: [atualLts] # Define a versão do kernel (atualLts, latest)
         
     steps:
       - name: Build and Upload GitHub
@@ -60,6 +60,11 @@ jobs:
           repo-unstable: ${{ secrets.REPO_UNSTABLE }}
           mirror-dev: ${{ secrets.MIRROR_DEV }}
           
+      # Configuração do TMATE para sessão de depuração
+      - name: Setup TMATE Session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
+
       # Verifica MD5SUM
       - name: Verify md5sum
         shell: bash
@@ -93,6 +98,10 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       
       # Upload da ISO
+      - name: Publish Package on GitHub
+        shell: bash
+        run: | 
+      # Quebra o arquivo e faz upload
       - name: Publish Package on GitHub
         shell: bash
         run: |

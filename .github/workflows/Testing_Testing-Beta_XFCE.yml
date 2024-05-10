@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Unstable / B:Unstable - Deepin
+name: XFCE M:Testing / B:Testing - Beta
 
 # Gatilhos para o workflow
 on:
@@ -39,9 +39,9 @@ jobs:
     strategy:
       matrix:
         NAME: [biglinux] # Define o nome do SO
-        EDITION: [deepin] # Define a edição
-        MANJAROBRANCH: [unstable] # Define a branch do Manjaro (stable, testing ou unstable)
-        BIGBRANCH: [unstable] # Define a branch do Biglinux (stable ou testing)
+        EDITION: [xfce] # Define a edição
+        MANJAROBRANCH: [testing] # Define a branch do Manjaro (stable, testing ou unstable)
+        BIGBRANCH: [testing] # Define a branch do Biglinux (stable ou testing)
         KERNEL: [latest] # Define a versão do kernel (atualLts, latest)
         
     steps:

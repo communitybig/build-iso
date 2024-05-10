@@ -1,5 +1,5 @@
 # Nome do workflow
-name: M:Unstable / B:Unstable - Unstable Gnome
+name: Deepin M:Unstable / B:Unstable - Development
 
 # Gatilhos para o workflow
 on:
@@ -39,7 +39,7 @@ jobs:
     strategy:
       matrix:
         NAME: [biglinux] # Define o nome do SO
-        EDITION: [gnome] # Define a edição
+        EDITION: [deepin] # Define a edição
         MANJAROBRANCH: [unstable] # Define a branch do Manjaro (stable, testing ou unstable)
         BIGBRANCH: [unstable] # Define a branch do Biglinux (stable ou testing)
         KERNEL: [latest] # Define a versão do kernel (atualLts, latest)
@@ -60,11 +60,6 @@ jobs:
           repo-unstable: ${{ secrets.REPO_UNSTABLE }}
           mirror-dev: ${{ secrets.MIRROR_DEV }}
           
-      # Configuração do TMATE para sessão de depuração
-      - name: Setup TMATE Session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-      
       # Verifica MD5SUM
       - name: Verify md5sum
         shell: bash
@@ -83,7 +78,6 @@ jobs:
           popd
           sudo umount mnt
 
-
       # Prepara Upload
       - name: upload-prepare
         shell: bash -O extglob {0}
@@ -93,18 +87,12 @@ jobs:
           touch /home/runner/.ssh/github_actions
           chmod 600 /home/runner/.ssh/github_actions
       
-
       # Configuração do TMATE para sessão de depuração
       - name: Setup TMATE Session
         uses: mxschmitt/action-tmate@v3
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
       
-      
       # Upload da ISO
-      - name: Publish Package on GitHub
-        shell: bash
-        run: | 
-      # Quebra o arquivo e faz upload
       - name: Publish Package on GitHub
         shell: bash
         run: |
