@@ -50,6 +50,9 @@ inputs:
   mirror-dev:
     description: 'Mirror dev'
     required: true
+  mirror-unstable:
+    description: 'Mirror unstable Big'
+    required: false
 
 outputs:
   file-path:
@@ -515,9 +518,9 @@ runs:
           
           # Adicione o repositório biglinux=unstable e manjaro=testing
           elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "testing" ]; then
-            echo '[biglinux-${{ inputs.repo-unstable }}]
+            echo '[bigiborg-${{ inputs.repo-unstable }}]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/${{ inputs.repo-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
+            Server = https://${{ inputs.mirror-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
             echo '[biglinux-testing]
             SigLevel = PackageRequired
             Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
@@ -527,9 +530,9 @@ runs:
           
           # Adicione o repositório biglinux=unstable e manjaro=unstable
           elif [ "${{ inputs.bigbranch }}" = "unstable" ] && [ "${{ inputs.manjarobranch }}" = "unstable" ]; then
-            echo '[biglinux-${{ inputs.repo-unstable }}]
+            echo '[bigiborg-${{ inputs.repo-unstable }}]
             SigLevel = PackageRequired
-            Server = https://repo.biglinux.com.br/${{ inputs.repo-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
+            Server = https://${{ inputs.mirror-unstable }}/$arch' | sudo tee -a "$arquivo_conf"
             echo '[biglinux-testing]
             SigLevel = PackageRequired
             Server = https://repo.biglinux.com.br/testing/$arch' | sudo tee -a "$arquivo_conf"
@@ -663,7 +666,7 @@ runs:
             ;;
           unstable)
             # Adicionar repo unstable do BigLinux
-            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-${{ inputs.repo-unstable }}\]/;p;x;}'
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[bigiborg-${{ inputs.repo-unstable }}\]/;p;x;}'
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
@@ -673,7 +676,7 @@ runs:
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
 
-            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/${{ inputs.repo-unstable }}\/$arch/;p;x;}'
+            sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/${{ inputs.mirror-unstable }}\/$arch/;p;x;}'
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
             sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf

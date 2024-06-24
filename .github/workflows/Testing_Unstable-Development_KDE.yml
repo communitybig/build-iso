@@ -59,6 +59,7 @@ jobs:
           tmate: ${{ inputs.debug_enabled }}
           repo-unstable: ${{ secrets.REPO_UNSTABLE }}
           mirror-dev: ${{ secrets.MIRROR_DEV }}
+          mirror-unstable: ${{ secrets.MIRROR_UNSTABLE }}
           
       # Verifica MD5SUM
       - name: Verify md5sum

@@ -156,7 +156,7 @@ runs:
 
         # Update library cache
         sudo ldconfig
-
+    
     - id: install-pacman
       shell: bash
       run: |
@@ -186,7 +186,6 @@ runs:
             PACMAN_DIR="pacman-v${LATEST_VERSION}"
 
             pushd "$PACMAN_DIR"
-              sudo patch -p1 -i ../pacman-sync-first-option.patch || exit 1
               sudo meson --prefix=/usr \
                         --buildtype=plain \
                         -Ddoc=disabled \
