@@ -250,6 +250,37 @@ runs:
         echo "ISO profiles cloned successfully."
 
   
+    - name: Apply Custom Profile Modifications
+      shell: bash
+      run: |
+        EDITION="${{ inputs.edition }}"
+        ISO_PROFILE_DIR="iso-profiles/community/$EDITION"
+        CUSTOM_PROFILE_DIR="iso-profiles/custom-profiles/$EDITION"
+        
+        # Apply edition-specific removals
+        for remove_file in Root-remove Live-remove Mhwd-remove Desktop-remove; do
+          if [ -f "$CUSTOM_PROFILE_DIR/$remove_file" ]; then
+            target_file="$ISO_PROFILE_DIR/Packages-${remove_file%-remove}"
+            if [ -f "$target_file" ]; then
+              echo "Removing packages from $target_file"
+              while IFS= read -r package
+              do
+                sed -i "/^$package$/d" "$target_file"
+              done < "$CUSTOM_PROFILE_DIR/$remove_file"
+            else
+              echo "Warning: $target_file does not exist. Skipping removals."
+            fi
+          else
+            echo "Info: $remove_file not found in $CUSTOM_PROFILE_DIR. Skipping."
+          fi
+        done
+        
+    # Execute special commands if they exist
+    if [ -f "$CUSTOM_PROFILE_DIR/special-commands.sh" ]; then
+      bash "$CUSTOM_PROFILE_DIR/special-commands.sh"
+    fi
+  
+  
     # Tmate
     - name: Setup TMATE Session
       uses: mxschmitt/action-tmate@v3
@@ -275,8 +306,8 @@ runs:
         
         # MESA configuration
         if [[ "$KERNEL" =~ ^(latest|xanmod)$ ]]; then
-          echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
-          sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' iso-profiles/biglinux/$EDITION/Packages-{Desktop,Mhwd}
+          echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
+          sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' iso-profiles/community/$EDITION/Packages-{Desktop,Mhwd}
         fi
         
         # KERNEL configuration
@@ -289,10 +320,10 @@ runs:
             ;;
           latest)
             KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-            echo "linux-latest" | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+            echo "linux-latest" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
             ;;
           xanmod*)
-            echo "linux-firmware" | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+            echo "linux-firmware" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
             KERNEL="-${KERNEL}"
             ;;
         esac
@@ -327,16 +358,16 @@ runs:
         }
         
         for config in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
-          configure_repos "iso-profiles/biglinux/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
+          configure_repos "iso-profiles/community/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
         done
         
         # Set build release info
-        echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+        echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
         
         # Configure ISO name
-        sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/biglinux/"$EDITION"/profile.conf
+        sudo sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" iso-profiles/community/"$EDITION"/profile.conf
         
         # Set ISO file name
         case "$MANJAROBRANCH/$COMMUNITYBRANCH" in

@@ -63,9 +63,13 @@ on:
         type: choice
         description: 'Edition'
         options:
-          - xfce
-          - kde
+          - cinnamon
+          - cosmic
+          - deepin
           - gnome
+          - kde
+          - xfce
+          - wmaker
         default: 'xfce'
   repository_dispatch:
     types: [build_iso]
