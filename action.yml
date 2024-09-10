@@ -292,14 +292,6 @@ runs:
         timeout-minutes: 30  # Ajuste este valor conforme necessário
   
   
-    - name: Setup manjaro-tools
-      run: |
-        sudo mkdir -p /var/cache/manjaro-tools/iso
-        sudo chmod 777 /var/cache/manjaro-tools/iso
-        sudo manjaro-tools-iso-init  # Este comando pode variar dependendo da versão exata do manjaro-tools
-        ls -la /var/cache/manjaro-tools/iso
-  
-  
     - name: Build ISO Image
       shell: bash
       env:
