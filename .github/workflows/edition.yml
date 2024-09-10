@@ -93,16 +93,16 @@ jobs:
           echo "Tmate from payload: ${{ github.event.client_payload.tmate }}"
           echo "Full github event: ${{ toJson(github.event) }}"
     
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3
-      if: ${{ inputs.tmate || github.event.client_payload.tmate }}
-      with:
-        install-dependencies: false
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ inputs.tmate || github.event.client_payload.tmate }}
+        with:
+          install-dependencies: false
 
       - name: Build ISO
         uses: ./
