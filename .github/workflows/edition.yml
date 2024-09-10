@@ -82,21 +82,27 @@ jobs:
     container:
       image: talesam/community-build:1.2
       options: --privileged
+      
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-  
-      # debug
-      - name: Debug - List directory contents
+      - name: Initial Debug
         run: |
-          pwd
-          ls -la
+          echo "Workflow started"
+          echo "Event Name: ${{ github.event_name }}"
+          echo "Event Action: ${{ github.event.action }}"
+          echo "Edition: ${{ github.event.client_payload.edition || inputs.edition }}"
+          echo "Tmate from payload: ${{ github.event.client_payload.tmate }}"
+          echo "Full github event: ${{ toJson(github.event) }}"
+    
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ inputs.tmate || github.event.client_payload.tmate }}
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      if: ${{ inputs.tmate || github.event.client_payload.tmate }}
+      with:
+        install-dependencies: false
 
       - name: Build ISO
         uses: ./
