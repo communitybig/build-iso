@@ -313,33 +313,39 @@ runs:
         OFFICE: ${{ inputs.office-chooser }}
         RELEASE_TAG: ${{ inputs.release_tag }}
       run: |
-        echo "## Community Pre Config Build ISO ##"
+        setup_manjaro_tools() {
+          sudo mkdir -p /var/cache/manjaro-tools/iso
+          sudo chmod 777 /var/cache/manjaro-tools/iso
+          sudo manjaro-tools-iso-init || echo "manjaro-tools-iso-init failed, continuing anyway"
+          ls -la /var/cache/manjaro-tools/iso
+        }
         
-        # MESA configuration
-        if [[ "$KERNEL" =~ ^(latest|xanmod)$ ]]; then
-          echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
-          sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' iso-profiles/community/$EDITION/Packages-{Desktop,Mhwd}
-        fi
+        configure_mesa() {
+          if [[ "$KERNEL" =~ ^(latest|xanmod)$ ]]; then
+            echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
+            sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' iso-profiles/community/$EDITION/Packages-{Desktop,Mhwd}
+          fi
+        }
         
-        # KERNEL configuration
-        case "$KERNEL" in
-          oldLts)
-            KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed -n 's/.*<title>\(.*\):.*/\1/p' | sort -Vr | sed -n '2s/\.//gp')
-            ;;
-          atualLts)
-            KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed -n 's/.*<title>\(.*\):.*/\1/p' | sort -Vr | sed -n '1s/\.//gp')
-            ;;
-          latest)
-            KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-            echo "linux-latest" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
-            ;;
-          xanmod*)
-            echo "linux-firmware" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
-            KERNEL="-${KERNEL}"
-            ;;
-        esac
+        configure_kernel() {
+          case "$KERNEL" in
+            oldLts)
+              KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed -n 's/.*<title>\(.*\):.*/\1/p' | sort -Vr | sed -n '2s/\.//gp')
+              ;;
+            atualLts)
+              KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed -n 's/.*<title>\(.*\):.*/\1/p' | sort -Vr | sed -n '1s/\.//gp')
+              ;;
+            latest)
+              KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
+              echo "linux-latest" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
+              ;;
+            xanmod*)
+              echo "linux-firmware" | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
+              KERNEL="-${KERNEL}"
+              ;;
+          esac
+        }
         
-        # Configure repositories
         configure_repos() {
           local config_file=$1
           local community_branch=$2
@@ -368,53 +374,68 @@ runs:
           fi
         }
         
-        for config in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
-          configure_repos "iso-profiles/community/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
-        done
+        set_build_info() {
+          echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+          echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+          echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+        }
         
-        # Set build release info
-        echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
-        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
-        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+        configure_iso_name() {
+          sudo sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" iso-profiles/community/"$EDITION"/profile.conf
+          
+          case "$MANJAROBRANCH/$COMMUNITYBRANCH" in
+            stable/stable) TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+            stable/testing|testing/*) TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+            unstable/*) TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+          esac
+        }
         
-        # Configure ISO name
-        sudo sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" iso-profiles/community/"$EDITION"/profile.conf
+        build_iso() {
+          KERNEL_NAME="${KERNEL/xanmod/xanmod$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed 's/\.//g')}"
+          sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
+        }
         
-        # Set ISO file name
-        case "$MANJAROBRANCH/$COMMUNITYBRANCH" in
-          stable/stable) TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
-          stable/testing|testing/*) TARGET_ISO_PATH="${NAME}_BETA_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
-          unstable/*) TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
-        esac
+        cleanup_and_move_files() {
+          sudo rm -rf /var/lib/manjaro-tools/buildiso/*
+          OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
+          sudo mv "$OUTPUT_ISO_PATH" "./$TARGET_ISO_PATH"
+          echo "file-path=$TARGET_ISO_PATH" >> "$GITHUB_OUTPUT"
+          
+          FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
+          sudo mv "$FILE_PKG" "./${TARGET_ISO_PATH}.pkgs"
+          
+          sudo rm -r iso-profiles
+        }
         
-        # Configure kernel name for ISO
-        KERNEL_NAME="${KERNEL/xanmod/xanmod$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed 's/\.//g')}"
+        main() {
+          echo "## Community Pre Config Build ISO ##"
+          setup_manjaro_tools
+          configure_mesa
+          configure_kernel
+          
+          for config in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
+            configure_repos "iso-profiles/community/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
+          done
+          
+          set_build_info
+          configure_iso_name
+          
+          sudo rm -rf iso-profiles/custom-profiles
+          
+          echo "Kernel: $KERNEL_NAME"
+          echo "Edition: $EDITION"
+          echo "ManjaroBranch: $MANJAROBRANCH"
+          echo "CommunityBranch: $COMMUNITYBRANCH"
+          echo "BigLinuxBranch: $BIGBRANCH"
+          
+          build_iso
+          cleanup_and_move_files
+          
+          ls -lh
+          echo "${{ steps.image-build.outputs.file-path }}"
+        }
         
-        # Remove custom profiles
-        sudo rm -rf iso-profiles/custom-profiles
-        
-        echo "Kernel: $KERNEL_NAME"
-        echo "Edition: $EDITION"
-        echo "ManjaroBranch: $MANJAROBRANCH"
-        echo "CommunityBranch: $COMMUNITYBRANCH"
-        echo "BigLinuxBranch: $BIGBRANCH"
-        
-        # Build ISO
-        sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
-        
-        # Clean up and move files
-        sudo rm -rf /var/lib/manjaro-tools/buildiso/*
-        OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        sudo mv "$OUTPUT_ISO_PATH" "./$TARGET_ISO_PATH"
-        echo "file-path=$TARGET_ISO_PATH" >> "$GITHUB_OUTPUT"
-        
-        FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
-        sudo mv "$FILE_PKG" "./${TARGET_ISO_PATH}.pkgs"
-        
-        sudo rm -r iso-profiles
-        
-        ls -lh
-        echo "${{ steps.image-build.outputs.file-path }}"
+        main
   
   
     - name: Calculate ISO MD5 Hash
