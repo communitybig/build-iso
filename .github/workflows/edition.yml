@@ -1,6 +1,9 @@
 name: ISO Build
 
 on:
+  repository_dispatch:
+    types: 
+      - 'ISO-*'
   workflow_dispatch:
     inputs:
       name:
@@ -76,6 +79,7 @@ on:
 
 jobs:
   build:
+    name: Build ISO ${{ github.event.client_payload.edition || 'Unknown' }}
     runs-on: ubuntu-latest
     container:
       image: talesam/community-build:1.2
@@ -83,13 +87,21 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+  
+      # debug
+      - name: Debug - List directory contents
+        run: |
+          pwd
+          ls -la
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
         if: ${{ inputs.tmate || github.event.client_payload.tmate }}
 
       - name: Build ISO
-        uses: ./action.yml
+        uses: ./
         id: build
         with:
           name: ${{ github.event.client_payload.name || inputs.name }}
