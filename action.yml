@@ -60,6 +60,9 @@ outputs:
   iso_path:
     description: "Path to the generated ISO file"
     value: ${{ steps.build.outputs.iso_path }}
+  release_name:
+    description: "Name of the release"
+    value: ${{ steps.prepare-iso.outputs.release_name }}
 
 runs:
   using: "composite"
@@ -444,12 +447,3 @@ runs:
           ${{ steps.build.outputs.file-path }}.md5 \
           ${{ steps.build.outputs.file-path }}.pkgs \
           ${release_name}.z*
-
-
-outputs:
-  iso_path:
-    description: "Path to the generated ISO file"
-    value: ${{ steps.build.outputs.file-path }}
-  release_name:
-    description: "Name of the release"
-    value: ${{ steps.prepare-iso.outputs.release_name }}
