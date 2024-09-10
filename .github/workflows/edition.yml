@@ -98,27 +98,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ inputs.tmate || github.event.client_payload.tmate }}
-        with:
-          install-dependencies: false
-
       - name: Build ISO
         uses: ./
         id: build
         with:
+          # Parâmetros básicos da ISO
           name: ${{ github.event.client_payload.name || inputs.name }}
           edition: ${{ github.event.client_payload.edition || inputs.edition }}
+          release_tag: ${{ github.event.client_payload.release_tag || inputs.release_tag }}
+          kernel: ${{ github.event.client_payload.kernel || inputs.kernel }}
+          scope: ${{ github.event.client_payload.scope || inputs.scope }}
+          office-chooser: ${{ github.event.client_payload.office-chooser || inputs.office-chooser }}
+
+          # Parâmetros de branches
           manjaro_branch: ${{ github.event.client_payload.manjaro_branch || inputs.manjaro_branch }}
           community_branch: ${{ github.event.client_payload.community_branch || inputs.community_branch }}
           biglinux_branch: ${{ github.event.client_payload.biglinux_branch || inputs.biglinux_branch }}
-          kernel: ${{ github.event.client_payload.kernel || inputs.kernel }}
-          release_tag: ${{ github.event.client_payload.release_tag || inputs.release_tag }}
-          scope: ${{ github.event.client_payload.scope || inputs.scope }}
-          office-chooser: ${{ github.event.client_payload.office-chooser || inputs.office-chooser }}
-          tmate: ${{ github.event.client_payload.tmate || inputs.tmate }}
+
+          # Depuração
+          tmate: ${{ github.event.client_payload.tmate || 'false' }}
+
+          # Tokens e segredos
           github_token: ${{ secrets.TOKEN_RELEASE }}
+
+          # Parâmetros adicionais (se necessário)
+          # iso_profiles_repo: ${{ github.event.client_payload.iso_profiles_repo || inputs.iso_profiles_repo }}
+          # iso_profiles_branch: ${{ github.event.client_payload.iso_profiles_branch || inputs.iso_profiles_branch }}
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v3
