@@ -307,7 +307,14 @@ runs:
         setup_manjaro_tools() {
           sudo mkdir -p /var/cache/manjaro-tools/iso
           sudo chmod 777 /var/cache/manjaro-tools/iso
-          sudo manjaro-tools-iso-init || echo "manjaro-tools-iso-init failed, continuing anyway"
+          
+          # Verifique se buildiso está disponível
+          if ! command -v buildiso &> /dev/null; then
+            echo "Error: buildiso command not found. Please ensure manjaro-tools-iso is installed correctly."
+            exit 1
+          fi
+          
+          echo "Manjaro tools setup completed. Directory contents:"
           ls -la /var/cache/manjaro-tools/iso
         }
         
@@ -382,8 +389,22 @@ runs:
         }
         
         build_iso() {
-          KERNEL_NAME="${KERNEL/xanmod/xanmod$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed 's/\.//g')}"
-          sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
+          local kernel_name
+          
+          if [ "$KERNEL" != "xanmod" ]; then
+            kernel_name="${KERNEL}"
+          else
+            local xan_ver
+            xan_ver=$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
+            kernel_name="${KERNEL//-/}${xan_ver}"
+          fi
+          
+          echo "Current directory: $(pwd)"
+          echo "Manjaro tools version: $(pacman -Q manjaro-tools-iso-git)"
+          echo "Build command: buildiso ${SCOPE:+-f} -p \"$EDITION\" -b \"$MANJAROBRANCH\" -k \"linux${kernel_name}\" ${OFFICE:+-o}"
+          
+          echo "Building ISO with kernel: linux${kernel_name}"
+          sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o}
         }
         
         cleanup_and_move_files() {
