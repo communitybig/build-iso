@@ -284,12 +284,11 @@ runs:
         fi
   
   
-    # Tmate
     - name: Setup TMATE Session
       uses: mxschmitt/action-tmate@v3
-      if: "${{ inputs.tmate == 'true' }}"
+      if: inputs.tmate == 'true'
       with:
-        timeout-minutes: 30  # Ajuste este valor conforme necessário
+        install-dependencies: false
   
   
     - name: Build ISO Image
