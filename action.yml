@@ -275,10 +275,10 @@ runs:
           fi
         done
         
-    # Execute special commands if they exist
-    if [ -f "$CUSTOM_PROFILE_DIR/special-commands.sh" ]; then
-      bash "$CUSTOM_PROFILE_DIR/special-commands.sh"
-    fi
+        # Execute special commands if they exist
+        if [ -f "$CUSTOM_PROFILE_DIR/special-commands.sh" ]; then
+          bash "$CUSTOM_PROFILE_DIR/special-commands.sh"
+        fi
   
   
     # Tmate
