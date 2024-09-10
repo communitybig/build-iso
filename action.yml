@@ -305,6 +305,13 @@ runs:
         RELEASE_TAG: ${{ inputs.release_tag }}
       run: |
         PROFILE_PATH="community"
+        
+        #Check if iso-profiles directory exists before proceeding
+        if [ ! -d "iso-profiles" ]; then
+          echo "Error: iso-profiles directory not found in the current working directory."
+          exit 1
+        fi
+        
         setup_manjaro_tools() {
           sudo mkdir -p /var/cache/manjaro-tools/iso
           sudo chmod 777 /var/cache/manjaro-tools/iso
@@ -316,9 +323,9 @@ runs:
           fi
           
           # Check if the profile directory exists
-          if [ ! -d "/usr/share/manjaro-tools/iso-profiles/${PROFILE_PATH}/$EDITION" ]; then
-              echo "Error: Profile directory /usr/share/manjaro-tools/iso-profiles/${PROFILE_PATH}/$EDITION does not exist."
-              exit 1
+          if [ ! -d "iso-profiles/${PROFILE_PATH}/$EDITION" ]; then
+            echo "Error: Profile directory iso-profiles/${PROFILE_PATH}/$EDITION does not exist."
+            exit 1
           fi
           
           echo "Manjaro tools setup completed. Directory contents:"
@@ -347,8 +354,19 @@ runs:
             xanmod*)
               echo "linux-firmware" | sudo tee -a iso-profiles/${PROFILE_PATH}/$EDITION/Packages-Root
               KERNEL="-${KERNEL}"
+              echo "Configurando kernel xanmod: $KERNEL"
               ;;
           esac
+          
+          # Definir KERNEL_NAME
+          if [ "$KERNEL" != "xanmod" ]; then
+            KERNEL_NAME="${KERNEL}"
+          else
+            local xan_ver
+            xan_ver=$(grep linux-xanmod "$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')" | grep -v headers | cut -d " " -f2 | cut -d "-" -f1 | sed ':a;$!{N;ba;};s/\(.*\)\..*/\1/' | sed 's/\.//')
+            KERNEL_NAME="${KERNEL//-/}${xan_ver}"
+          fi
+          echo "KERNEL_NAME definido como: $KERNEL_NAME"
         }
         
         configure_repos() {
@@ -430,12 +448,17 @@ runs:
           echo "## Community Pre Config Build ISO ##"
           setup_manjaro_tools
           configure_mesa
-          configure_kernel
           
+          echo "Starting kernel configuration..."
+          configure_kernel
+          echo "Kernel configuration completed."
+          
+          echo "Starting repository configuration..."
           for config in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
             echo "Configuring $config..."
             configure_repos "iso-profiles/${PROFILE_PATH}/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
           done
+          echo "Repository configuration completed."
           
           set_build_info
           configure_iso_name
@@ -447,13 +470,12 @@ runs:
           echo "ManjaroBranch: $MANJAROBRANCH"
           echo "CommunityBranch: $COMMUNITYBRANCH"
           echo "BigLinuxBranch: $BIGBRANCH"
-          echo "ISO profiles path: /usr/share/manjaro-tools/iso-profiles/${PROFILE_PATH}/$EDITION"
+          echo "ISO profiles path: $(pwd)/iso-profiles/${PROFILE_PATH}/$EDITION"
           
           build_iso
           cleanup_and_move_files
           
           ls -lh
-          echo "${{ steps.image-build.outputs.file-path }}"
         }
         
         main
