@@ -305,6 +305,21 @@ runs:
         RELEASE_TAG: ${{ inputs.release_tag }}
       run: |
         PROFILE_PATH="community"
+
+        # Verificação inicial
+        if [ ! -d "iso-profiles" ]; then
+          echo "Error: iso-profiles directory not found in the current working directory."
+          exit 1
+        fi
+
+        # Verificação, debugging
+        echo "Verificando o diretório iso-profiles no diretório atual:"
+        ls -la iso-profiles
+
+        echo "Verificando o diretório do perfil específico:"
+        ls -la "iso-profiles/${PROFILE_PATH}/$EDITION"
+
+        echo "Caminho completo do diretório do perfil: $(pwd)/iso-profiles/${PROFILE_PATH}/$EDITION"
         
         #Check if iso-profiles directory exists before proceeding
         if [ ! -d "iso-profiles" ]; then
@@ -429,6 +444,8 @@ runs:
           echo "Build command: buildiso ${SCOPE:+-f} -p \"${PROFILE_PATH}/$EDITION\" -b \"$MANJAROBRANCH\" -k \"linux${kernel_name}\" ${OFFICE:+-o}"
           
           echo "Building ISO with kernel: linux${kernel_name}"
+          echo "______________________________________________"
+          echo "CAMINHO PARA BUIDAR: ${PROFILE_PATH}/$EDITION"
           sudo buildiso ${SCOPE:+-f} -p "${PROFILE_PATH}/$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o}
         }
         
