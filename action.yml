@@ -439,14 +439,12 @@ runs:
             kernel_name="${KERNEL//-/}${xan_ver}"
           fi
           
-          echo "Current directory: $(pwd)"
-          echo "Manjaro tools version: $(pacman -Q manjaro-tools-iso-git)"
-          echo "Build command: buildiso ${SCOPE:+-f} -p \"${PROFILE_PATH}/$EDITION\" -b \"$MANJAROBRANCH\" -k \"linux${kernel_name}\" ${OFFICE:+-o}"
+          echo "Build command: buildiso ${SCOPE:+-f} -p \"$full_path\" -b \"$MANJAROBRANCH\" -k \"linux${kernel_name}\" ${OFFICE:+-o}"
           
           echo "Building ISO with kernel: linux${kernel_name}"
-          echo "______________________________________________"
-          echo "CAMINHO PARA BUIDAR: ${PROFILE_PATH}/$EDITION"
-          sudo buildiso ${SCOPE:+-f} -p "${PROFILE_PATH}/$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o}
+          echo "PROFILE_PATH = $PROFILE_PATH"
+          cd $PROFILE_PATH
+          sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
         }
         
         cleanup_and_move_files() {
