@@ -304,7 +304,8 @@ runs:
         OFFICE: ${{ inputs.office-chooser }}
         RELEASE_TAG: ${{ inputs.release_tag }}
       run: |
-        PROFILE_PATH="community"
+        # Denine path for directory
+        PROFILE_PATH="iso-profiles/community"
 
         # Verificação inicial
         if [ ! -d "iso-profiles" ]; then
@@ -317,9 +318,9 @@ runs:
         ls -la iso-profiles
 
         echo "Verificando o diretório do perfil específico:"
-        ls -la "iso-profiles/${PROFILE_PATH}/$EDITION"
+        ls -la "$PROFILE_PATH/$EDITION"
 
-        echo "Caminho completo do diretório do perfil: $(pwd)/iso-profiles/${PROFILE_PATH}/$EDITION"
+        echo "Caminho completo do diretório do perfil: $(pwd)/$PROFILE_PATH/$EDITION"
         
         #Check if iso-profiles directory exists before proceeding
         if [ ! -d "iso-profiles" ]; then
@@ -338,8 +339,8 @@ runs:
           fi
           
           # Check if the profile directory exists
-          if [ ! -d "iso-profiles/${PROFILE_PATH}/$EDITION" ]; then
-            echo "Error: Profile directory iso-profiles/${PROFILE_PATH}/$EDITION does not exist."
+          if [ ! -d "$PROFILE_PATH/$EDITION" ]; then
+            echo "Error: Profile directory $PROFILE_PATH/$EDITION does not exist."
             exit 1
           fi
           
@@ -349,8 +350,8 @@ runs:
         
         configure_mesa() {
           if [[ "$KERNEL" =~ ^(latest|xanmod)$ ]]; then
-              echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a iso-profiles/${PROFILE_PATH}/$EDITION/Packages-Root
-              sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' iso-profiles/${PROFILE_PATH}/$EDITION/Packages-{Desktop,Mhwd}
+              echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a $PROFILE_PATH/$EDITION/Packages-Root
+              sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' $PROFILE_PATH/$EDITION/Packages-{Desktop,Mhwd}
           fi
         }
         
@@ -364,10 +365,10 @@ runs:
               ;;
             latest)
               KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-              echo "linux-latest" | sudo tee -a iso-profiles/${PROFILE_PATH}/$EDITION/Packages-Root
+              echo "linux-latest" | sudo tee -a $PROFILE_PATH/$EDITION/Packages-Root
               ;;
             xanmod*)
-              echo "linux-firmware" | sudo tee -a iso-profiles/${PROFILE_PATH}/$EDITION/Packages-Root
+              echo "linux-firmware" | sudo tee -a $PROFILE_PATH/$EDITION/Packages-Root
               KERNEL="-${KERNEL}"
               echo "Configurando kernel xanmod: $KERNEL"
               ;;
@@ -413,13 +414,13 @@ runs:
         }
         
         set_build_info() {
-          echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/${PROFILE_PATH}/"$EDITION"/root-overlay/etc/big-release
-          echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/${PROFILE_PATH}/"$EDITION"/root-overlay/etc/big-release
-          echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/${PROFILE_PATH}/"$EDITION"/root-overlay/etc/big-release
+          echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a $PROFILE_PATH/"$EDITION"/root-overlay/etc/big-release
+          echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a $PROFILE_PATH/"$EDITION"/root-overlay/etc/big-release
+          echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a $PROFILE_PATH/"$EDITION"/root-overlay/etc/big-release
         }
         
         configure_iso_name() {
-          sudo sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" iso-profiles/${PROFILE_PATH}/"$EDITION"/profile.conf
+          sudo sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" $PROFILE_PATH/"$EDITION"/profile.conf
           
           case "$MANJAROBRANCH/$COMMUNITYBRANCH" in
             stable/stable) TARGET_ISO_PATH="${NAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
@@ -443,7 +444,7 @@ runs:
           
           echo "Building ISO with kernel: linux${kernel_name}"
           echo "PROFILE_PATH = $PROFILE_PATH"
-          #cd $PROFILE_PATH
+          cd $PROFILE_PATH
           pwd
           sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
         }
@@ -472,7 +473,7 @@ runs:
           echo "Starting repository configuration..."
           for config in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
             echo "Configuring $config..."
-            configure_repos "iso-profiles/${PROFILE_PATH}/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
+            configure_repos "$PROFILE_PATH/$EDITION/$config" "$COMMUNITYBRANCH" "$BIGBRANCH"
           done
           echo "Repository configuration completed."
           
@@ -486,7 +487,7 @@ runs:
           echo "ManjaroBranch: $MANJAROBRANCH"
           echo "CommunityBranch: $COMMUNITYBRANCH"
           echo "BigLinuxBranch: $BIGBRANCH"
-          echo "ISO profiles path: $(pwd)/iso-profiles/${PROFILE_PATH}/$EDITION"
+          echo "ISO profiles path: $(pwd)/$PROFILE_PATH/$EDITION"
           
           build_iso
           cleanup_and_move_files
