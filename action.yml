@@ -350,8 +350,8 @@ runs:
           sudo sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
           sudo sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
 
-          # Configurar a marca do BigLinux
-          sudo sed -i -e 's|dist_branding=.*|dist_branding="biglinux"|' /usr/lib/manjaro-tools/util.sh
+          # Configurar a marca do BigCommunity
+          sudo sed -i -e 's|dist_branding=.*|dist_branding="bigcommunity"|' /usr/lib/manjaro-tools/util.sh
 
           # Modificar o nome do arquivo ISO
           sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
@@ -365,8 +365,8 @@ runs:
           # Configurar o caminho do perfil ISO
           sudo sed -i "s|^iso_profile=.*|iso_profile=\"$PROFILE_PATH\"|" /etc/manjaro-tools/manjaro-tools.conf
 
-          # Adicionar limpezas do BigLinux
-          add_biglinux_cleanups
+          # Adicionar limpezas do Big
+          add_big_cleanups
 
           # Adicionar root-overlay
           sudo sed -i '/copy_overlay "${profile_dir}\/root-overlay" "${path}"/a [[ -e ${profile_dir}\/root-overlay ]] && copy_overlay "${profile_dir}\/root-overlay" "${path}"' /usr/lib/manjaro-tools/util-iso.sh
@@ -376,7 +376,7 @@ runs:
 
           echo "Manjaro tools setup completed. Directory contents of /var/cache/manjaro-tools/iso:"
           ls -la /var/cache/manjaro-tools/iso
-      }
+        }
 
       add_big_cleanups() {
           local cleanup_script="/usr/lib/manjaro-tools/util-iso-image.sh"
