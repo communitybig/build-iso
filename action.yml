@@ -439,11 +439,11 @@ runs:
             kernel_name="${KERNEL//-/}${xan_ver}"
           fi
           
-          echo "Build command: buildiso ${SCOPE:+-f} -p \"$full_path\" -b \"$MANJAROBRANCH\" -k \"linux${kernel_name}\" ${OFFICE:+-o}"
+          echo "Build command: buildiso ${SCOPE:+-f} -p \"$EDITION\" -b \"$MANJAROBRANCH\" -k \"linux${kernel_name}\" ${OFFICE:+-o}"
           
           echo "Building ISO with kernel: linux${kernel_name}"
           echo "PROFILE_PATH = $PROFILE_PATH"
-          cd $PROFILE_PATH
+          #cd $PROFILE_PATH
           pwd
           sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
         }
