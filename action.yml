@@ -444,6 +444,7 @@ runs:
           echo "Building ISO with kernel: linux${kernel_name}"
           echo "PROFILE_PATH = $PROFILE_PATH"
           cd $PROFILE_PATH
+          pwd
           sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" ${OFFICE:+-o}
         }
         
