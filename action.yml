@@ -604,10 +604,10 @@ runs:
         if [ "$KERNEL" = "latest" -o "$KERNEL" = "xanmod" ]; then
           echo '
           mesa-tkg-stable
-          lib32-mesa-tkg-stable' | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
-          sudo sed -i '/libva-mesa/d'  iso-profiles/biglinux/$EDITION/Packages-Desktop
-          sudo sed -i '/libva-mesa/d'  iso-profiles/biglinux/$EDITION/Packages-Mhwd
-          sudo sed -i '/vulkan-swrast/d'  iso-profiles/biglinux/$EDITION/Packages-Desktop
+          lib32-mesa-tkg-stable' | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
+          sudo sed -i '/libva-mesa/d'  iso-profiles/community/$EDITION/Packages-Desktop
+          sudo sed -i '/libva-mesa/d'  iso-profiles/community/$EDITION/Packages-Mhwd
+          sudo sed -i '/vulkan-swrast/d'  iso-profiles/community/$EDITION/Packages-Desktop
         fi
         
         #KERNEL
@@ -619,129 +619,129 @@ runs:
           KERNEL=$atualLts
         elif [ "$KERNEL" = "latest" ];then
           kernelVer=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-          echo "linux-latest"  | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          echo "linux-latest"  | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
           KERNEL=$kernelVer
         elif [ -n "$(echo $KERNEL | grep xanmod)" ];then
           echo '
-          linux-firmware' | sudo tee -a iso-profiles/biglinux/$EDITION/Packages-Root
+          linux-firmware' | sudo tee -a iso-profiles/community/$EDITION/Packages-Root
           KERNEL=-${KERNEL}
         fi
         
         # Configuração do branch BigLinux
         case "$BIGBRANCH" in
           stable)
-            echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+            echo "BUILD_RELEASE=$(echo "$RELEASE_TAG" | cut -d "_" -f1)" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
             ;;
           testing)
             # Adicionar repo testing do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
-            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
 
             # Alterar mirrors para testing (Manjaro) apenas se o branch do Manjaro for testing
             if [ "$MANJAROBRANCH" = "testing" ]; then
-              sudo sed -i 's/stable/testing/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+              sudo sed -i 's/stable/testing/g' iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
             fi
             ;;
           unstable)
             # Adicionar repo unstable do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-${{ inputs.repo-unstable }}\]/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/${{ inputs.repo-unstable }}\/$arch/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             # Adicionar repo testing do BigLinux
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-testing\]/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/testing\/$arch/;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             # # Adicionar repo testing do BigLinux-Manjaro
             # sed_cmd='/\[biglinux-stable\]/{h;s/.*/\[biglinux-manjaro-testing\]/;p;x;}'
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             # sed_cmd='/\[biglinux-stable\]/{h;s/.*/SigLevel = PackageRequired/;p;x;}'
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             # sed_cmd='/\[biglinux-stable\]/{h;s/.*/Server = https:\/\/repo.biglinux.com.br\/manjaro-testing\/$arch/;p;x;}'
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
             # sed_cmd='/\[biglinux-stable\]/{h;s/.*//;p;x;}'
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/user-repos.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/live-overlay/etc/pacman.conf
-            # sudo sed -i "$sed_cmd" iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/user-repos.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/live-overlay/etc/pacman.conf
+            # sudo sed -i "$sed_cmd" iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.conf
 
-            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+            echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
 
             # Alterar mirrors para unstable (Manjaro)
             if [ "$MANJAROBRANCH" = "testing" ]; then
-              sudo sed -i 's/stable/testing/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+              sudo sed -i 's/stable/testing/g' iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
             elif [ "$MANJAROBRANCH" = "unstable" ]; then
-              sudo sed -i 's/stable/unstable/g' iso-profiles/biglinux/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
+              sudo sed -i 's/stable/unstable/g' iso-profiles/community/"$EDITION"/root-overlay/etc/pacman.d/mirrorcdn
             fi
             ;;
         esac
 
         #Build Release and Unix Time
-        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
-        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/biglinux/"$EDITION"/root-overlay/etc/big-release
+        echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
+        echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a iso-profiles/community/"$EDITION"/root-overlay/etc/big-release
 
         # Configuração do nome da ISO
-        sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/biglinux/"$EDITION"/profile.conf
+        sudo sed -i "s/label=.*/label=biglinux_$RELEASE_TAG.iso/" iso-profiles/community/"$EDITION"/profile.conf
 
         # Definir nome do arquivo ISO
         case "$MANJAROBRANCH/$BIGBRANCH" in
