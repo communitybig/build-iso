@@ -260,9 +260,10 @@ runs:
         REPO="${{ inputs.iso_profiles_repo }}"
         BRANCH="${{ inputs.iso_profiles_branch }}"
         
+        echo "Remove /usr/share/manjaro-tools/iso-profiles..."
         sudo rm -rf /usr/share/manjaro-tools/iso-profiles
-        #if ! sudo git clone ${BRANCH:+--branch "${BRANCH}"} --depth 1 "$REPO" iso-profiles; then
-        if ! sudo buildiso -i https://github.com/talesam/iso-profiles; then
+        if ! sudo git clone ${BRANCH:+--branch "${BRANCH}"} --depth 1 "$REPO" iso-profiles; then
+        #if ! buildiso -i https://github.com/talesam/iso-profiles; then
           echo "Failed to clone ISO profiles repository."
           exit 1
         fi
