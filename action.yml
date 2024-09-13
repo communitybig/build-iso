@@ -260,10 +260,13 @@ runs:
         REPO="${{ inputs.iso_profiles_repo }}"
         BRANCH="${{ inputs.iso_profiles_branch }}"
         
+        echo "Configure iso-profiles..."
+        buildiso -i https://github.com/talesam/iso-profiles
+        
         echo "Remove /usr/share/manjaro-tools/iso-profiles..."
         sudo rm -rf /usr/share/manjaro-tools/iso-profiles
-        if ! sudo git clone ${BRANCH:+--branch "${BRANCH}"} --depth 1 "$REPO" iso-profiles; then
-        #if ! buildiso -i https://github.com/talesam/iso-profiles; then
+        
+        if ! sudo git clone ${BRANCH:+--branch "${BRANCH}"} --depth 1 "$REPO" /usr/share/manjaro-tools/iso-profiles; then
           echo "Failed to clone ISO profiles repository."
           exit 1
         fi
@@ -397,9 +400,6 @@ runs:
 
           # Desabilitar a verificação de versão do kernel
           sudo sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
-
-          # Configurar o caminho do perfil ISO
-          sudo sed -i '/^SYSCONFDIR='"'"'\/etc\/manjaro-tools'"'"'/a profile_repo="/__w/build-iso/build-iso/iso-profiles"' /usr/bin/buildiso
 
           # Adicionar limpezas do Big
           add_big_cleanups
