@@ -75,30 +75,16 @@ runs:
         sudo pacman -Syu --noconfirm
         
         # Instalar pacotes adicionais que possam ser necessários
-        sudo pacman -S --needed --noconfirm \
-          mktorrent \
-          squashfs-tools \
+        sudo pacman -S --quiet --needed --noconfirm \
           archiso \
           calamares \
           calamares-tools \
+          fuse-overlayfs \
           manjaro-tools \
           manjaro-tools-iso \
           mkinitcpio \
-          cmake \
-          zip \
-          asciidoc \
-          libarchive \
-          pkg-config \
-          gpgme \
-          openssl \
-          fakeroot \
-          haveged \
-          os-prober \
-          dosfstools \
-          libisoburn \
-          doxygen \
-          zstd \
-          fuse-overlayfs
+          mktorrent \
+          squashfs-tools \
         
         # Ajuste nos hooks do mkinitcpio (se ainda necessário)
         sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
@@ -266,10 +252,12 @@ runs:
         echo "Remove /usr/share/manjaro-tools/iso-profiles..."
         sudo rm -rf /usr/share/manjaro-tools/iso-profiles
         
-        if ! sudo git clone ${BRANCH:+--branch "${BRANCH}"} --depth 1 "$REPO" /usr/share/manjaro-tools/iso-profiles; then
+        if ! sudo git clone ${BRANCH:+--branch "${BRANCH}"} --depth 1 "$REPO"; then
           echo "Failed to clone ISO profiles repository."
           exit 1
         fi
+        sudo rm -rf /usr/share/manjaro-tools/iso-profiles
+        sudo git clone $REPO /usr/share/manjaro-tools/iso-profiles
         
         echo "ISO profiles cloned successfully."
 
@@ -515,7 +503,7 @@ runs:
           echo "KERNEL_NAME: $kernel_name"
           echo "SCOPE: $SCOPE"
           echo "OFFICE: $OFFICE"
-          sudo buildiso ${SCOPE:+-f} -p "$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o}
+          sudo buildiso ${SCOPE:+-f} -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o} -t /__w/ -f
         }
         
         cleanup_and_move_files() {
