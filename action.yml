@@ -1,59 +1,59 @@
-name: 'Build BigCommunity ISO'
-description: 'Builds a BigCommunity ISO image'
+name: "Build BigCommunity ISO"
+description: "Builds a BigCommunity ISO image"
 
 inputs:
   name:
-    description: 'Name for the ISO'
+    description: "Name for the ISO"
     required: true
   iso_profiles_repo:
-    description: 'ISO profiles repository to clone'
+    description: "ISO profiles repository to clone"
     required: false
-    default: 'https://github.com/talesam/iso-profiles'
+    default: "https://github.com/talesam/iso-profiles"
   iso_profiles_branch:
-    description: 'Branch of the ISO profiles repository (optional)'
+    description: "Branch of the ISO profiles repository (optional)"
     required: false
   edition:
-    description: 'Name of the ISO profile to build'
+    description: "Name of the ISO profile to build"
     required: true
   manjaro_branch:
-    description: 'Manjaro branch (stable, testing, unstable)'
+    description: "Manjaro branch (stable, testing, unstable)"
     required: true
     default: stable
   community_branch:
-    description: 'Community branch (stable, testing)'
+    description: "Community branch (stable, testing)"
     required: true
   biglinux_branch:
-    description: 'BigLinux branch (stable, testing)'
+    description: "BigLinux branch (stable, testing)"
     required: true
   scope:
-    description: 'Build scope (full or minimal)'
+    description: "Build scope (full or minimal)"
     required: false
-    default: 'full'
+    default: "full"
   kernel:
-    description: 'Kernel version (latest, lts, oldLts)'
+    description: "Kernel version (latest, lts, oldLts)"
     required: true
   release_tag:
-    description: 'Release tag for the ISO'
+    description: "Release tag for the ISO"
     required: true
   tmate:
-    description: 'Enable debugging with tmate'
+    description: "Enable debugging with tmate"
     required: false
-    default: 'false'
+    default: "false"
   office-chooser:
-    description: 'Include office suite'
+    description: "Include office suite"
     required: false
-    default: 'false'
+    default: "false"
   repo_unstable:
-    description: 'URL for unstable repository'
+    description: "URL for unstable repository"
     required: false
   mirror_dev:
-    description: 'URL for development mirror'
+    description: "URL for development mirror"
     required: false
   mirror_unstable:
-    description: 'URL for unstable BigCommunity mirror'
+    description: "URL for unstable BigCommunity mirror"
     required: false
   github_token:
-    description: 'GitHub token for authentication'
+    description: "GitHub token for authentication"
     required: true
 
 outputs:
@@ -67,7 +67,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-  
     - name: Setup build environment
       shell: bash
       run: |
@@ -85,15 +84,13 @@ runs:
           tree \
           duf \
           mkinitcpio > /dev/null
-  
-  
+
     - name: Ajuste nos hooks do mkinitcpio
       shell: bash
       run: |
-      # Ajuste nos hooks do mkinitcpio (se ainda necessário)
-      sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
+        # Ajuste nos hooks do mkinitcpio (se ainda necessário)
+        sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
 
-  
     - name: Configure the environment for the root user
       shell: bash
       run: |
@@ -103,7 +100,6 @@ runs:
         echo "run_dir=/__w/build-iso/build-iso/iso-profiles" > /root/.config/manjaro-tools/iso-profiles.conf
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles
 
-
     - name: Additional configurations specific to ISO building
       shell: bash
       run: |
@@ -111,7 +107,6 @@ runs:
         sudo sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
         sudo sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
 
-  
     - name: Configure disable-fsync
       shell: bash
       run: |
@@ -126,7 +121,6 @@ runs:
 
         sudo sh -c "echo '${DISABLE_FSYNC_FILE}' >> '${PRELOAD_FILE}'"
         sudo ldconfig
-  
 
     - name: Pull and setup Community keys
       shell: bash
@@ -136,23 +130,22 @@ runs:
         sudo install -dm755 /etc/pacman.d/gnupg/
         sudo install -m0644 biglinux-key/usr/share/pacman/keyrings/* /etc/pacman.d/gnupg/
         sudo rm -r biglinux-key
-        
+
         # Inicializar o chaveiro do pacman, se necessário
         sudo pacman-key --init
-        
+
         # Receber e assinar a chave do Community
         sudo pacman-key --recv-keys AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
         sudo pacman-key --lsign-key AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
-        
+
         # Atualizar os bancos de dados do pacman
         sudo pacman -Sy --quiet
-  
-  
+
     - name: Configure repositories and build environment
       shell: bash
       run: |
         # Configuring repositories and build environment...
-        
+
         # Função para adicionar repositórios
         add_repository() {
           local arquivo_conf=$1
@@ -243,8 +236,7 @@ runs:
         cat /usr/share/manjaro-tools/pacman-multilib.conf
 
         echo "Repository and build environment configuration completed."
-  
-  
+
     - name: Checkout iso-profiles
       shell: bash
       run: |
@@ -257,7 +249,6 @@ runs:
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles || true
         sudo rm -rf /usr/share/manjaro-tools/iso-profiles || true
 
-
     - name: Create with mknod /dev/sr0
       shell: bash
       run: |
@@ -266,7 +257,6 @@ runs:
         sudo chmod 660 /dev/sr0 || true
         sudo chown root:root /dev/sr0 || true
 
-  
     - name: Apply Custom Profile Modifications
       shell: bash
       run: |
@@ -274,7 +264,7 @@ runs:
         EDITION="${{ inputs.edition }}"
         ISO_PROFILE_DIR="iso-profiles/community/$EDITION"
         CUSTOM_PROFILE_DIR="iso-profiles/custom-profiles/$EDITION"
-        
+
         # Apply edition-specific removals
         for remove_file in Root-remove Live-remove Mhwd-remove Desktop-remove; do
           if [ -f "$CUSTOM_PROFILE_DIR/$remove_file" ]; then
@@ -292,20 +282,18 @@ runs:
             echo "Info: $remove_file not found in $CUSTOM_PROFILE_DIR. Skipping."
           fi
         done
-        
+
         # Execute special commands if they exist
         if [ -f "$CUSTOM_PROFILE_DIR/special-commands.sh" ]; then
           bash "$CUSTOM_PROFILE_DIR/special-commands.sh"
         fi
-  
-  
+
     - name: Setup TMATE Session
       uses: mxschmitt/action-tmate@v3
       if: inputs.tmate == 'true'
       with:
         install-dependencies: false
-  
-  
+
     - name: Build ISO Image
       shell: bash
       env:
@@ -336,13 +324,13 @@ runs:
         ls -la "$PROFILE_PATH/$EDITION"
 
         echo "Caminho completo do diretório do perfil: $(pwd)/$PROFILE_PATH/$EDITION"
-        
+
         #Check if iso-profiles directory exists before proceeding
         if [ ! -d "iso-profiles" ]; then
           echo "Error: iso-profiles directory not found in the current working directory."
           exit 1
         fi
-        
+
         add_big_cleanups() {
           local cleanup_script="/usr/lib/manjaro-tools/util-iso-image.sh"
           sudo tee -a "$cleanup_script" > /dev/null << 'EOF'
@@ -365,7 +353,7 @@ runs:
           fi
         EOF
         }
-        
+
         setup_manjaro_tools() {
           echo "Setting up Manjaro tools..."
 
@@ -407,14 +395,14 @@ runs:
           echo "Manjaro tools setup completed. Directory contents of /var/cache/manjaro-tools/iso:"
           ls -la /var/cache/manjaro-tools/iso
         }
-        
+
         configure_mesa() {
           if [[ "$KERNEL" =~ ^(latest|xanmod)$ ]]; then
               echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a $PROFILE_PATH/$EDITION/Packages-Root
               sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' $PROFILE_PATH/$EDITION/Packages-{Desktop,Mhwd}
           fi
         }
-        
+
         configure_kernel() {
           case "$KERNEL" in
             oldLts)
@@ -444,7 +432,7 @@ runs:
           fi
           echo "KERNEL_NAME definido como: $KERNEL_NAME"
         }
-        
+
         configure_repos() {
           local config_file=$1
           local community_branch=$2
@@ -472,13 +460,13 @@ runs:
             Server = https://repo.biglinux.com.br/stable/\$arch" | sudo tee -a "$config_file"
           fi
         }
-        
+
         set_build_info() {
           echo "BUILD_RELEASE=$RELEASE_TAG" | sudo tee -a $PROFILE_PATH/"$EDITION"/root-overlay/etc/big-release
           echo "BUILD_BRANCH=$BIGBRANCH" | sudo tee -a $PROFILE_PATH/"$EDITION"/root-overlay/etc/big-release
           echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))" | sudo tee -a $PROFILE_PATH/"$EDITION"/root-overlay/etc/big-release
         }
-        
+
         configure_iso_name() {
           sudo sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" $PROFILE_PATH/"$EDITION"/profile.conf
           
@@ -488,7 +476,7 @@ runs:
             unstable/*) TARGET_ISO_PATH="${NAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
           esac
         }
-        
+
         build_iso() {
           local kernel_name
           
@@ -511,7 +499,7 @@ runs:
           echo "OFFICE: $OFFICE"
           sudo buildiso ${SCOPE:+-f} -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o} -t /__w/ -f
         }
-        
+
         cleanup_and_move_files() {
           sudo rm -rf /var/lib/manjaro-tools/buildiso/*
           OUTPUT_ISO_PATH=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
@@ -523,7 +511,7 @@ runs:
           
           sudo rm -r iso-profiles
         }
-        
+
         main() {
           echo "## Community Pre Config Build ISO ##"
           setup_manjaro_tools
@@ -558,22 +546,20 @@ runs:
           
           ls -lh
         }
-        
+
         main
-  
-  
+
     - name: Calculate ISO MD5 Hash
       shell: bash
       run: |
         echo "Calculating MD5 hash for ISO file..."
         ISO_PATH="${{ steps.image-build.outputs.file-path }}"
-        
+
         # Calculate MD5 hash
         md5sum "$ISO_PATH" > "${ISO_PATH}.md5"
-        
+
         echo "MD5 hash calculated and saved:"
         cat "${ISO_PATH}.md5"
-  
 
     - name: Prepare ISO for release
       id: prepare-iso
@@ -584,7 +570,6 @@ runs:
         zip -j -0 -s 2000m ${release}.zip ${{ steps.image-build.outputs.file-path }}
         echo "release_name=${release}" >> $GITHUB_OUTPUT
         echo "ISO prepared for release"
-
 
     - name: Create GitHub Release
       shell: bash
