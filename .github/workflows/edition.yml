@@ -87,7 +87,7 @@ jobs:
         - /mnt/var_cache_manjaro_tools_iso:/var/cache/manjaro-tools/iso
       
     steps:
-       - name: Set up volume directory on HOST
+      - name: Set up volume directory on HOST
         run: |
           sudo mkdir -p /mnt/var_lib_manjaro_tools_buildiso
           sudo mkdir -p /mnt/var_cache_manjaro_tools_iso
