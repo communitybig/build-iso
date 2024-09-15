@@ -248,6 +248,8 @@ runs:
         fi
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles || true
         sudo rm -rf /usr/share/manjaro-tools/iso-profiles || true
+        # Remove directory "/__t"
+        rm -rf /__t/* || true
 
     - name: Create with mknod /dev/sr0
       shell: bash
@@ -498,7 +500,7 @@ runs:
           echo "KERNEL_NAME: $kernel_name"
           echo "SCOPE: $SCOPE"
           echo "OFFICE: $OFFICE"
-          sudo buildiso ${SCOPE:+-f} -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o} -t /__w/ -f
+          sudo buildiso ${SCOPE:+-f} -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${kernel_name}" ${OFFICE:+-o}
         }
 
         cleanup_and_move_files() {
