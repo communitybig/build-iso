@@ -2,8 +2,8 @@ name: "Build BigCommunity ISO"
 description: "Builds a BigCommunity ISO image"
 
 inputs:
-  name:
-    description: "Name for the ISO"
+   name:
+    description: 'Name for the ISO'
     required: true
   iso_profiles_repo:
     description: "ISO profiles repository to clone"
@@ -577,7 +577,8 @@ runs:
         }
 
         configure_iso_name() {
-          sed -i "s/label=.*/label=bigcommunity_$RELEASE_TAG.iso/" $PROFILE_PATH/"$EDITION"/profile.conf
+          # Use $DISTRONAME aqui também, em vez de "bigcommunity"
+          sed -i "s/label=.*/label=${DISTRONAME}_$RELEASE_TAG.iso/" $PROFILE_PATH/"$EDITION"/profile.conf
           
           case "$MANJAROBRANCH/$COMMUNITYBRANCH" in
             stable/stable) ISO_BASENAME="${DISTRONAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
