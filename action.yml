@@ -398,8 +398,9 @@ runs:
 
         configure_mesa() {
           if [[ "$KERNEL" =~ ^(latest|xanmod)$ ]]; then
-              echo -e "mesa-tkg-stable\nlib32-mesa-tkg-stable" | sudo tee -a $PROFILE_PATH/$EDITION/Packages-Root
-              sudo sed -i '/libva-mesa/d; /vulkan-swrast/d' $PROFILE_PATH/$EDITION/Packages-{Desktop,Mhwd}
+              echo "mesa-tkg-stable" >> $PROFILE_PATH/$EDITION/Packages-Root
+              echo "lib32-mesa-tkg-stable" >> $PROFILE_PATH/$EDITION/Packages-Root
+              sed -i '/libva-mesa/d; /vulkan-swrast/d' $PROFILE_PATH/$EDITION/Packages-{Desktop,Mhwd}
           fi
         }
 
