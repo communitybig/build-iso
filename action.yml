@@ -2,7 +2,7 @@ name: "Build BigCommunity ISO"
 description: "Builds a BigCommunity ISO image"
 
 inputs:
-   name:
+  name:
     description: 'Name for the ISO'
     required: true
   iso_profiles_repo:
