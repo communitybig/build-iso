@@ -626,14 +626,13 @@ runs:
           OUTPUT_ISO_PATH_NAME=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
           FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} \; | sort -nr | awk 'NR==1 {print $2}')
           echo "ISO_BASENAME=$ISO_BASENAME" >> $GITHUB_ENV  # Exporta WORK_PATH para outras etapas
-          echo "::set-output name=file-path::$ISO_BASENAME"
 
           echo "ISO_BASENAME=$ISO_BASENAME"
           echo "FILE_PKG=$FILE_PKG"
 
           #rm -rf /var/lib/manjaro-tools/buildiso/*
           mv -fv "$OUTPUT_ISO_PATH_NAME" "$WORK_PATH/$ISO_BASENAME" || true
-          echo "file-path=$ISO_BASENAME" >> "$GITHUB_OUTPUT"
+          echo "iso_path=$WORK_PATH/$ISO_BASENAME" >> "$GITHUB_OUTPUT"
           
           mv -fv "$FILE_PKG" "$WORK_PATH/${ISO_BASENAME}.pkgs" || true
         }
@@ -678,7 +677,7 @@ runs:
       shell: bash
       run: |
         echo "Calculating MD5 hash for ISO file..."
-        ISO_PATH="${{ steps.image-build.outputs.file-path }}"
+        ISO_PATH="${{ steps.build.outputs.iso_path }}"
 
         # Calculate MD5 hash
         md5sum "$ISO_PATH" > "${ISO_PATH}.md5"
@@ -691,8 +690,8 @@ runs:
       shell: bash
       run: |
         ls -lh
-        release=$(basename "${{ steps.image-build.outputs.file-path }}" .iso)
-        zip -j -0 -s 2000m ${release}.zip ${{ steps.image-build.outputs.file-path }}
+        release=$(basename "${{ steps.build.outputs.iso_path }}" .iso)
+        zip -j -0 -s 2000m ${release}.zip ${{ steps.build.outputs.iso_path }}
         echo "release_name=${release}" >> $GITHUB_OUTPUT
         echo "ISO prepared for release"
 
@@ -706,7 +705,7 @@ runs:
         gh release create $release_name \
           --title "$release_name" \
           --notes "Automated release from CI/CD" \
-          ${{ steps.build.outputs.file-path }} \
-          ${{ steps.build.outputs.file-path }}.md5 \
-          ${{ steps.build.outputs.file-path }}.pkgs \
+          ${{ steps.build.outputs.iso_path }} \
+          ${{ steps.build.outputs.iso_path }}.md5 \
+          ${{ steps.build.outputs.iso_path }}.pkgs \
           ${release_name}.z*
