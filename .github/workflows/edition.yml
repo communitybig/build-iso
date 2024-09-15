@@ -87,13 +87,27 @@ jobs:
         - /mnt/var_cache_manjaro_tools_iso:/var/cache/manjaro-tools/iso
       
     steps:
-      - name: Set up volume directory
+       - name: Set up volume directory on HOST
         run: |
           sudo mkdir -p /mnt/var_lib_manjaro_tools_buildiso
-
           sudo mkdir -p /mnt/var_cache_manjaro_tools_iso
+
+          
+      - name: Display the current user in host
+        run: |
+          # Display the current user in host
+          echo "#########################################"
+          echo "Current host is: $(hostname)"
+          echo "Current user is: $(whoami)"
+          echo "Current user ID is: $(id -u)"
+          echo "Current user details:"
+          id
+          echo "#########################################"
+          df -hT
+          echo "#########################################"
           ls -la /mnt
-    
+          echo "#########################################"    
+      
       - name: Initial Debug
         run: |
           echo "Workflow started"
