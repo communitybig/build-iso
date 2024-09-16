@@ -419,54 +419,69 @@ runs:
         }
 
         setup_manjaro_tools() {
-          echo "Setting up Manjaro tools..."
+            echo "Setting up Manjaro tools..."
 
-          # Criar e configurar diretórios
-          mkdir -p /var/cache/manjaro-tools/iso
-          chmod 777 /var/cache/manjaro-tools/iso
-          
-          # Verificar se buildiso está disponível
-          if ! command -v buildiso &> /dev/null; then
-            echo "Error: buildiso command not found. Please ensure manjaro-tools-iso is installed correctly."
-            exit 1
-          fi
+            # Criar e configurar diretórios
+            mkdir -p /var/cache/manjaro-tools/iso
+            chmod 777 /var/cache/manjaro-tools/iso
+            
+            # Verificar se buildiso está disponível
+            if ! command -v buildiso &> /dev/null; then
+                echo "Error: buildiso command not found. Please ensure manjaro-tools-iso is installed correctly."
+                exit 1
+            fi
 
-          # Verificar se o diretório do perfil existe
-          if [ ! -d "$PROFILE_PATH/$EDITION" ]; then
-              echo "Error: Profile directory $PROFILE_PATH/$EDITION does not exist."
-              exit 1
-          fi
+            # Verificar se o diretório do perfil existe
+            if [ ! -d "$PROFILE_PATH/$EDITION" ]; then
+                echo "Error: Profile directory $PROFILE_PATH/$EDITION does not exist."
+                exit 1
+            fi
 
-          # Configurar o nome da distribuição e ISO
-          sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
-          sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
+            # Configurar o nome da distribuição e ISO
+            sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
+            sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
 
-          # Configurar a marca do BigCommunity
-          sed -i -e 's|dist_branding=.*|dist_branding="bigcommunity"|' /usr/lib/manjaro-tools/util.sh
+            # Configurar a marca do BigCommunity
+            sed -i -e 's|dist_branding=.*|dist_branding="bigcommunity"|' /usr/lib/manjaro-tools/util.sh
 
-          # Modificar o nome do arquivo ISO
-          sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
+            # Modificar o nome do arquivo ISO
+            sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
-          # Modificar a busca por versões de kernel
-          sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
+            # Modificar a busca por versões de kernel em util-iso-boot.sh
+            sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
 
-          # Desabilitar a verificação de versão do kernel
-          sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
+            # Adicionar logging para a versão do kernel
+            sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
 
-          # Configurar o caminho do perfil ISO
-          sed -i "s|^iso_profile=.*|iso_profile=\"$PROFILE_PATH\"|" /etc/manjaro-tools/manjaro-tools.conf
-          
-          # Adicionar limpezas do Big
-          add_big_cleanups
+            # Modificar a cópia do kernel em util-iso-boot.sh
+            sed -i '/prepare_boot_extras()/a\
+            # Copy kernel\n\
+            local _kernel=$(ls $1/boot/vmlinuz-* | sort -V | tail -n1)\n\
+            if [[ -f $_kernel ]]; then\n\
+                msg2 "Copying kernel: $_kernel"\n\
+                cp $_kernel $2/vmlinuz-x86_64\n\
+            else\n\
+                error "Kernel not found: $_kernel"\n\
+                ls -l $1/boot/\n\
+            fi' /usr/lib/manjaro-tools/util-iso-boot.sh
 
-          # Adicionar root-overlay
-          sed -i '/copy_overlay "${profile_dir}\/root-overlay" "${path}"/a [[ -e ${profile_dir}\/root-overlay ]] && copy_overlay "${profile_dir}\/root-overlay" "${path}"' /usr/lib/manjaro-tools/util-iso.sh
+            # Desabilitar a verificação de versão do kernel
+            sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
 
-          # Habilitar plymouth e kms
-          sed -i "s|keyboard keymap|keyboard keymap kms plymouth|g" /usr/share/manjaro-tools/mkinitcpio.conf
+            # Configurar o caminho do perfil ISO
+            sed -i "s|^iso_profile=.*|iso_profile=\"$PROFILE_PATH\"|" /etc/manjaro-tools/manjaro-tools.conf
+            
+            # Adicionar limpezas do Big
+            add_big_cleanups
 
-          echo "Manjaro tools setup completed. Directory contents of /var/cache/manjaro-tools/iso:"
-          ls -la /var/cache/manjaro-tools/iso
+            # Adicionar root-overlay
+            sed -i '/copy_overlay "${profile_dir}\/root-overlay" "${path}"/a [[ -e ${profile_dir}\/root-overlay ]] && copy_overlay "${profile_dir}\/root-overlay" "${path}"' /usr/lib/manjaro-tools/util-iso.sh
+
+            # Habilitar plymouth e kms
+            sed -i "s|keyboard keymap|keyboard keymap kms plymouth|g" /usr/share/manjaro-tools/mkinitcpio.conf
+
+            echo "Manjaro tools setup completed. Directory contents of /var/cache/manjaro-tools/iso:"
+            ls -la /var/cache/manjaro-tools/iso
         }
 
         configure_mesa() {
@@ -481,6 +496,7 @@ runs:
         }
 
         configure_kernel() {
+            echo "Configuring kernel: $KERNEL"
             case "$KERNEL" in
                 oldLts)
                     KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
@@ -495,9 +511,10 @@ runs:
                 xanmod*)
                     echo "linux-firmware" >> "$PROFILE_PATH/$EDITION/Packages-Root"
                     KERNEL="-${KERNEL}"
-                    echo "Configurando kernel xanmod: $KERNEL"
                     ;;
             esac
+            
+            echo "KERNEL set to: $KERNEL"
             
             # Definir KERNEL_NAME
             if [[ "$KERNEL" != "xanmod" ]]; then
@@ -514,7 +531,11 @@ runs:
                           sed 's/\.//')
                 KERNEL_NAME="${KERNEL//-/}${xan_ver}"
             fi
-            echo "KERNEL_NAME definido como: $KERNEL_NAME"
+            echo "KERNEL_NAME set to: $KERNEL_NAME"
+            
+            # Adicione o pacote do kernel ao Packages-Root
+            echo "linux${KERNEL_NAME}" >> "$PROFILE_PATH/$EDITION/Packages-Root"
+            echo "Added linux${KERNEL_NAME} to Packages-Root"
         }
 
         configure_repos() {
@@ -616,6 +637,15 @@ runs:
             echo "OFFICE                   : $OFFICE"
             echo "###################################################################"
 
+            # Verificar se o arquivo do kernel existe
+            KERNEL_FILE="/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/vmlinuz-x86_64"
+            if [ ! -f "$KERNEL_FILE" ]; then
+                echo "Error: Kernel file not found at $KERNEL_FILE"
+                echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot:"
+                ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot
+                exit 1
+            fi
+            
             # removendo iso-profiles em /usr/share/manjaro-tools/iso-profiles
             rm -rf /usr/share/manjaro-tools/iso-profiles || true
             
