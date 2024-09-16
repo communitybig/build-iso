@@ -3,9 +3,9 @@ description: "Builds a BigCommunity ISO image"
 
 inputs:
   name:
-    description: 'Name for the ISO'
+    description: "Name for the ISO"
     required: true
-    default: 'bigcommunity'
+    default: "bigcommunity"
   iso_profiles_repo:
     description: "ISO profiles repository to clone"
     required: false
@@ -68,7 +68,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-  
     - name: Display the current user in CONTAINER
       shell: bash
       run: |
@@ -83,7 +82,7 @@ runs:
         echo "##########################################################################"
         ls -la /mnt || true
         echo "##########################################################################"
-  
+
     - name: Setup build environment
       shell: bash
       run: |
@@ -117,7 +116,7 @@ runs:
         echo 'PACKAGER="Community Package/ISO Build <talesam@gmail.com>"' >> /root/.makepkg.conf
         echo "run_dir=/__w/build-iso/build-iso/iso-profiles" > /root/.config/manjaro-tools/iso-profiles.conf
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles
-        
+
         # Configurar o ambiente para o usuário builduser
         sudo -u builduser bash << EOF
         echo 'PACKAGER="Community Package/ISO Build <talesam@gmail.com>"' >> /home/builduser/.makepkg.conf
@@ -300,14 +299,14 @@ runs:
         # Cloning ISO profiles repository
         REPO="${{ inputs.iso_profiles_repo }}"
         echo "Repository: $REPO"
-        
+
         if ! git clone --depth 1 "$REPO" iso-profiles; then
           echo "Falha ao clonar o repositorio iso-profiles"
           exit 1
         fi
         # ativando 'git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles'
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles || true
-        
+
         # Remove directory "/__t"
         rm -rf /__t/* || true
 
@@ -449,23 +448,27 @@ runs:
             # Modificar o nome do arquivo ISO
             sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
-            # Modificar a busca por versões de kernel em util-iso-boot.sh
-            sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
-
-            # Adicionar logging para a versão do kernel
-            sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
-            
-            # Criar diretório de destino para o kernel
-            sed -i '/prepare_boot_extras()/a\    mkdir -p "$2"' /usr/lib/manjaro-tools/util-iso-boot.sh
-
-            # Modificar a cópia do kernel para usar vmlinuz* e criar o diretório se não existir
-            sed -i 's/cp $1\/boot\/vmlinuz-x86_64/mkdir -p "$2" \&\& cp $1\/boot\/vmlinuz*/' /usr/lib/manjaro-tools/util-iso-boot.sh
-
-            # Adicionar logging para o arquivo do kernel copiado
-            sed -i '/cp $1\/boot\/vmlinuz*/a\    echo "Kernel files copied: $(ls $2/vmlinuz*)"' /usr/lib/manjaro-tools/util-iso-boot.sh
+            # Modificar a função prepare_boot_extras em util-iso-boot.sh
+            sed -i '/prepare_boot_extras()/,/^}/c\
+        prepare_boot_extras(){\
+            mkdir -p "$2"\
+            cp $1/boot/amd-ucode.img $2/amd_ucode.img\
+            cp $1/boot/intel-ucode.img $2/intel_ucode.img\
+            cp $1/usr/share/licenses/amd-ucode/LIC* $2/amd_ucode.LICENSE\
+            cp $1/usr/share/licenses/intel-ucode/LIC* $2/intel_ucode.LICENSE\
+            cp $1/boot/memtest86+/memtest.bin $2/memtest\
+            local kernel_file=$(ls $1/boot/vmlinuz-${KERNEL_NAME}* 2>/dev/null || ls $1/boot/vmlinuz-*-${KERNEL_NAME} 2>/dev/null)\
+            if [ -n "$kernel_file" ]; then\
+                cp "$kernel_file" $2/vmlinuz-x86_64\
+                echo "Kernel copied: $kernel_file"\
+            else\
+                echo "Error: Kernel file not found for KERNEL_NAME=${KERNEL_NAME}"\
+                ls -l $1/boot/\
+            fi\
+        }' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Desabilitar a verificação de versão do kernel
-            sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
+            #sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
 
             # Configurar o caminho do perfil ISO
             sed -i "s|^iso_profile=.*|iso_profile=\"$PROFILE_PATH\"|" /etc/manjaro-tools/manjaro-tools.conf
@@ -495,45 +498,55 @@ runs:
         }
 
         configure_kernel() {
-            echo "Configuring kernel: $KERNEL"
-            case "$KERNEL" in
-                oldLts)
-                    KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
-                    ;;
-                atualLts)
-                    KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
-                    ;;
-                latest)
-                    KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-                    ;;
-                xanmod*)
-                    KERNEL="-${KERNEL}"
-                    ;;
-            esac
-            
-            echo "KERNEL set to: $KERNEL"
+          echo "Configuring kernel: $KERNEL"
+          case "$KERNEL" in
+              oldLts)
+                  KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n2 | sed 's/\.//g' | tail -n1)
+                  ;;
+              atualLts)
+                  KERNEL=$(curl -s https://www.kernel.org/feeds/kdist.xml | grep ": longterm" | sed 's/^.*<title>//' | sed 's/<\/title>.*$//' | cut -d ":" -f1 | rev | cut -d "." -f2,3 | rev | head -n1 | sed 's/\.//g')
+                  ;;
+              latest)
+                  KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
+                  ;;
+              xanmod*)
+                  KERNEL="-${KERNEL}"
+                  ;;
+          esac
+          
+          echo "KERNEL set to: $KERNEL"
 
-            # Limpar Packages-Root de kernels anteriores
-            sed -i '/^linux[0-9]/d' "$PROFILE_PATH/$EDITION/Packages-Root"
-            sed -i '/^linux-latest/d' "$PROFILE_PATH/$EDITION/Packages-Root"
-            sed -i '/^linux-firmware/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+          # Limpar Packages-Root de kernels anteriores
+          sed -i '/^linux[0-9]/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+          sed -i '/^linux-latest/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+          sed -i '/^linux-firmware/d' "$PROFILE_PATH/$EDITION/Packages-Root"
 
-            # Adicionar o kernel e firmware necessários
-            if [[ "$KERNEL" == "-xanmod"* ]]; then
-                echo "linux-firmware" >> "$PROFILE_PATH/$EDITION/Packages-Root"
-                KERNEL_NAME="${KERNEL#-}"
-            elif [[ "$KERNEL" == "latest" ]]; then
-                echo "linux-latest" >> "$PROFILE_PATH/$EDITION/Packages-Root"
-                KERNEL_NAME="latest"
-            else
-                KERNEL_NAME="$KERNEL"
-            fi
+          # Remover explicitamente o kernel 5.4 e seus headers
+          sed -i '/^linux54/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+          sed -i '/^linux54-headers/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+          
+          # Adicionar o kernel e firmware necessários
+          if [[ "$KERNEL" == "-xanmod"* ]]; then
+              echo "linux-firmware" >> "$PROFILE_PATH/$EDITION/Packages-Root"
+              KERNEL_NAME="${KERNEL#-}"
+          elif [[ "$KERNEL" == "latest" ]]; then
+              echo "linux-latest" >> "$PROFILE_PATH/$EDITION/Packages-Root"
+              KERNEL_NAME="latest"
+          else
+              KERNEL_NAME="$KERNEL"
+          fi
 
-            echo "linux${KERNEL_NAME}" >> "$PROFILE_PATH/$EDITION/Packages-Root"
-            
-            echo "KERNEL_NAME set to: $KERNEL_NAME"
-            echo "Contents of $PROFILE_PATH/$EDITION/Packages-Root:"
-            cat "$PROFILE_PATH/$EDITION/Packages-Root"
+          echo "linux${KERNEL_NAME}" >> "$PROFILE_PATH/$EDITION/Packages-Root"
+          
+          echo "KERNEL_NAME set to: $KERNEL_NAME"
+          echo "Contents of $PROFILE_PATH/$EDITION/Packages-Root:"
+          cat "$PROFILE_PATH/$EDITION/Packages-Root"
+          
+          # Remover o kernel 5.4 da cache do pacman, se existir
+          if pacman -Ss linux54 &> /dev/null; then
+              echo "Removing linux54 from pacman cache..."
+              sudo pacman -Rdd linux54 linux54-headers --noconfirm || true
+          fi
         }
 
         configure_repos() {
@@ -579,14 +592,6 @@ runs:
           echo "[community-extra]"
           echo "SigLevel = PackageRequired"
           echo "Server = https://repo.communitybig.org/extra/\$arch"
-          echo
-          echo "[chili-stable]"
-          echo "SigLevel = Optional TrustAll"
-          echo "Server = https://repo.chililinux.com/stable/\$arch"
-          echo
-          echo "[chili-testing]"
-          echo "SigLevel = Optional TrustAll"
-          echo "Server = https://repo.chililinux.com/testing/\$arch"
           } >> "$config_file"
 
         }
@@ -645,7 +650,7 @@ runs:
             git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
 
             # Executar buildiso e capturar o código de saída
-            sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
+              sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
             BUILD_EXIT_CODE=$?
 
             # Verificar arquivos de kernel e tentar cópia manual, independentemente do resultado do buildiso
@@ -731,7 +736,7 @@ runs:
       run: |
         echo "Calculating MD5 hash for ISO file..."
         ISO_PATH="${{ steps.build.outputs.iso_path }}"
-        
+
         if [ -f "$ISO_PATH" ]; then
           md5sum "$ISO_PATH" > "${ISO_PATH}.md5"
           echo "MD5 hash calculated and saved:"
