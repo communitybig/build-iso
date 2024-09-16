@@ -703,9 +703,6 @@ runs:
 
             mv -fv "$OUTPUT_ISO_PATH_NAME" "$WORK_PATH/$ISO_BASENAME" || echo "Failed to move ISO file"           
             mv -fv "$FILE_PKG" "$WORK_PATH/${ISO_BASENAME}.pkgs" || echo "Failed to move pkgs file"
-            
-            # Definir o caminho do ISO para o output
-            echo "$WORK_PATH" > iso_path_output.txt
         }
 
         main() {
@@ -744,9 +741,7 @@ runs:
         }
         main
 
-    - name: Echo ISO path
+    - name: Set ISO path
       shell: bash
       run: |
-        echo "----------------------------------------"
-        echo "ISO path: ${{ steps.build.outputs.iso_path }}"
-        echo "----------------------------------------"
+        echo "ISO_PATH=$WORK_PATH/$ISO_BASENAME" >> $GITHUB_ENV
