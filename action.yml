@@ -356,6 +356,7 @@ runs:
       if: inputs.tmate == 'true'
       with:
         install-dependencies: false
+        detached: true
 
     - name: Build ISO Image
       shell: bash
