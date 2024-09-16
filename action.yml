@@ -450,25 +450,13 @@ runs:
             sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
             # Modificar a busca por versões de kernel em util-iso-boot.sh
-            sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
+            #sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Adicionar logging para a versão do kernel
-            sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
-
-            # Modificar a cópia do kernel em util-iso-boot.sh
-            sed -i '/prepare_boot_extras()/a\
-            # Copy kernel\n\
-            local _kernel=$(ls $1/boot/vmlinuz-* | sort -V | tail -n1)\n\
-            if [[ -f $_kernel ]]; then\n\
-                msg2 "Copying kernel: $_kernel"\n\
-                cp $_kernel $2/vmlinuz-x86_64\n\
-            else\n\
-                error "Kernel not found: $_kernel"\n\
-                ls -l $1/boot/\n\
-            fi' /usr/lib/manjaro-tools/util-iso-boot.sh
+            #sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Desabilitar a verificação de versão do kernel
-            sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
+            #sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
 
             # Configurar o caminho do perfil ISO
             sed -i "s|^iso_profile=.*|iso_profile=\"$PROFILE_PATH\"|" /etc/manjaro-tools/manjaro-tools.conf
@@ -596,20 +584,20 @@ runs:
         }
 
         set_build_info() {
-            local release_file="$PROFILE_PATH/$EDITION/root-overlay/etc/big-release"
-            local release_dir=$(dirname "$release_file")
+          local release_file="$PROFILE_PATH/$EDITION/root-overlay/etc/big-release"
+          local release_dir=$(dirname "$release_file")
 
-            # Ensure the directory exists
-            mkdir -p "$release_dir"
+          # Ensure the directory exists
+          mkdir -p "$release_dir"
 
-            {
-                echo "BUILD_RELEASE=$RELEASE_TAG"
-                echo "BUILD_BRANCH=$BIGBRANCH"
-                echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))"
-                echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
-            } > "$release_file"
+          {
+              echo "BUILD_RELEASE=$RELEASE_TAG"
+              echo "BUILD_BRANCH=$BIGBRANCH"
+              echo "UNIX_TIMESTAMP=$(( $(date +%s) / 86400 ))"
+              echo "BUILD_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          } > "$release_file"
 
-            echo "Build info written to $release_file"
+          echo "Build info written to $release_file"
         }
 
         configure_iso_name() {
