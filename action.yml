@@ -107,7 +107,7 @@ runs:
       shell: bash
       run: |
         # Ajuste nos hooks do mkinitcpio (se ainda necessário)
-        sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
+        sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
 
     - name: Configure the environment for the root user
       shell: bash
@@ -130,8 +130,8 @@ runs:
       shell: bash
       run: |
         # Configurações adicionais específicas para a construção de ISO
-        sudo sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
-        sudo sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
+        sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
+        sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
 
     - name: Configure disable-fsync
       shell: bash
@@ -141,12 +141,12 @@ runs:
         DISABLE_FSYNC_FILE="/usr/lib/disable-fsync.so"
         PRELOAD_FILE="/etc/ld.so.preload"
 
-        sudo wget "$DISABLE_FSYNC_URL" -O "$DISABLE_FSYNC_FILE"
+        wget "$DISABLE_FSYNC_URL" -O "$DISABLE_FSYNC_FILE"
         SHA256SUM=$(curl -s "$DISABLE_FSYNC_URL" | sha256sum | awk '{print $1}')
         echo "${SHA256SUM} ${DISABLE_FSYNC_FILE}" | sha256sum --check || exit 1
 
-        sudo sh -c "echo '${DISABLE_FSYNC_FILE}' >> '${PRELOAD_FILE}'"
-        sudo ldconfig
+        sh -c "echo '${DISABLE_FSYNC_FILE}' >> '${PRELOAD_FILE}'"
+        ldconfig
 
     - name: Pull and setup Community keys
       shell: bash
@@ -177,12 +177,12 @@ runs:
 
           # Adicione o repositório community-keyring
           if ! grep -q 'community-keyring' "$arquivo_conf"; then
-            sudo sed -i '/SyncFirst/s/$/ community-keyring/' "$arquivo_conf"
+            sed -i '/SyncFirst/s/$/ community-keyring/' "$arquivo_conf"
           fi
 
           # Adicione o repositório biglinux-keyring
           if ! grep -q 'biglinux-keyring' "$arquivo_conf"; then
-            sudo sed -i '/SyncFirst/s/$/ biglinux-keyring/' "$arquivo_conf"
+            sed -i '/SyncFirst/s/$/ biglinux-keyring/' "$arquivo_conf"
           fi
 
           # Adicione o repositório biglinux-update-stable
@@ -201,7 +201,7 @@ runs:
           branch="${{ inputs.manjaro_branch }}"
           servers=(irltoolkit.mm.fcix.net mirror.fcix.net opencolo.mm.fcix.net mirrors.ocf.berkeley.edu ridgewireless.mm.fcix.net codingflyboy.mm.fcix.net mirrors.sonic.net repo.ialab.dsu.edu volico.mm.fcix.net forksystems.mm.fcix.net mnvoip.mm.fcix.net coresite.mm.fcix.net uvermont.mm.fcix.net ohioix.mm.fcix.net southfront.mm.fcix.net nnenix.mm.fcix.net mirror.math.princeton.edu nocix.mm.fcix.net mirrors.gigenet.com ask4.mm.fcix.net)
           for server in "${servers[@]}"; do
-            echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" | sudo tee -a "$arquivo_conf"
+            echo "Server = https://$server/manjaro/$branch/\$repo/\$arch" >> "$arquivo_conf"
           done
 
           # Configure os repositórios Community
@@ -274,14 +274,14 @@ runs:
         add_repository "/usr/share/manjaro-tools/pacman-multilib.conf"
 
         # Desabilite a remoção do cache de pacotes
-        sudo sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|g' /usr/lib/manjaro-tools/util-iso-image.sh
+        sed -i 's|path=$1/var/lib/pacman/sync|path=$1/usr/share/man|g' /usr/lib/manjaro-tools/util-iso-image.sh
 
         # Configurações de compressão
         if [ "${{ inputs.community_branch }}" != "stable" ]; then
-          sudo sed -i 's|-Xcompression-level 20|-Xcompression-level 6|g' /usr/lib/manjaro-tools/util-iso.sh
-          sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
+          sed -i 's|-Xcompression-level 20|-Xcompression-level 6|g' /usr/lib/manjaro-tools/util-iso.sh
+          sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         else
-          sudo sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
+          sed -i 's|256K|1024K|g' /usr/lib/manjaro-tools/util-iso.sh
         fi
 
         # Imprima as configurações
@@ -315,9 +315,9 @@ runs:
       shell: bash
       run: |
         # Create with mknod /dev/sr0
-        sudo mknod /dev/sr0 b 11 0 || true
-        sudo chmod 660 /dev/sr0 || true
-        sudo chown root:root /dev/sr0 || true
+        mknod /dev/sr0 b 11 0 || true
+        chmod 660 /dev/sr0 || true
+        chown root:root /dev/sr0 || true
 
     - name: Apply Custom Profile Modifications
       shell: bash
@@ -455,11 +455,14 @@ runs:
             # Adicionar logging para a versão do kernel
             sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
             
-            # Modificar a cópia do kernel para usar vmlinuz*
-            sed -i 's/cp $1\/boot\/vmlinuz-x86_64/cp $1\/boot\/vmlinuz*/' /usr/lib/manjaro-tools/util-iso-boot.sh
+            # Criar diretório de destino para o kernel
+            sed -i '/prepare_boot_extras()/a\    mkdir -p "$2"' /usr/lib/manjaro-tools/util-iso-boot.sh
+
+            # Modificar a cópia do kernel para usar vmlinuz* e criar o diretório se não existir
+            sed -i 's/cp $1\/boot\/vmlinuz-x86_64/mkdir -p "$2" \&\& cp $1\/boot\/vmlinuz*/' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Adicionar logging para o arquivo do kernel copiado
-            sed -i '/cp $1\/boot\/vmlinuz*/a\    echo "Kernel file copied: $1/boot/vmlinuz*"' /usr/lib/manjaro-tools/util-iso-boot.sh
+            sed -i '/cp $1\/boot\/vmlinuz*/a\    echo "Kernel files copied: $(ls $2/vmlinuz*)"' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Desabilitar a verificação de versão do kernel
             sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
@@ -502,36 +505,35 @@ runs:
                     ;;
                 latest)
                     KERNEL=$(curl -s https://raw.githubusercontent.com/biglinux/linux-latest/stable/PKGBUILD | awk -F= '/kernelver=/{print $2}')
-                    echo "linux-latest" >> "$PROFILE_PATH/$EDITION/Packages-Root"
                     ;;
                 xanmod*)
-                    echo "linux-firmware" >> "$PROFILE_PATH/$EDITION/Packages-Root"
                     KERNEL="-${KERNEL}"
                     ;;
             esac
             
             echo "KERNEL set to: $KERNEL"
-            
-            # Definir KERNEL_NAME
-            if [[ "$KERNEL" != "xanmod" ]]; then
-                KERNEL_NAME="$KERNEL"
+
+            # Limpar Packages-Root de kernels anteriores
+            sed -i '/^linux[0-9]/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+            sed -i '/^linux-latest/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+            sed -i '/^linux-firmware/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+
+            # Adicionar o kernel e firmware necessários
+            if [[ "$KERNEL" == "-xanmod"* ]]; then
+                echo "linux-firmware" >> "$PROFILE_PATH/$EDITION/Packages-Root"
+                KERNEL_NAME="${KERNEL#-}"
+            elif [[ "$KERNEL" == "latest" ]]; then
+                echo "linux-latest" >> "$PROFILE_PATH/$EDITION/Packages-Root"
+                KERNEL_NAME="latest"
             else
-                local xan_ver
-                xan_ver=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} + | 
-                          sort -nr | 
-                          awk 'NR==1 {print $2}' | 
-                          xargs grep linux-xanmod | 
-                          grep -v headers | 
-                          awk '{print $2}' | 
-                          cut -d "-" -f1 | 
-                          sed 's/\.//')
-                KERNEL_NAME="${KERNEL//-/}${xan_ver}"
+                KERNEL_NAME="$KERNEL"
             fi
-            echo "KERNEL_NAME set to: $KERNEL_NAME"
-            
-            # Adicione o pacote do kernel ao Packages-Root
+
             echo "linux${KERNEL_NAME}" >> "$PROFILE_PATH/$EDITION/Packages-Root"
-            echo "Added linux${KERNEL_NAME} to Packages-Root"
+            
+            echo "KERNEL_NAME set to: $KERNEL_NAME"
+            echo "Contents of $PROFILE_PATH/$EDITION/Packages-Root:"
+            cat "$PROFILE_PATH/$EDITION/Packages-Root"
         }
 
         configure_repos() {
@@ -622,39 +624,55 @@ runs:
         }
 
         build_iso() {
-          echo "###################################################################"
-          echo "BUILD COMMAND            : buildiso ${SCOPE:+-f} -p community/$EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o}"
-          echo "Building ISO with kernel : linux${KERNEL_NAME}"
-          echo "PROFILE_PATH             : $PROFILE_PATH"
-          echo "EDITION                  : $EDITION"
-          echo "MANJAROBRANCH            : $MANJAROBRANCH"
-          echo "KERNEL_NAME              : $KERNEL_NAME"
-          echo "SCOPE                    : $SCOPE"
-          echo "OFFICE                   : $OFFICE"
-          echo "###################################################################"
-          
-          # removendo iso-profiles em /usr/share/manjaro-tools/iso-profiles
-          rm -rf /usr/share/manjaro-tools/iso-profiles || true
-          
-          # criando link simbolico para /__w/build-iso/build-iso/iso-profiles
-          ln -sf /__w/build-iso/build-iso/iso-profiles /usr/share/manjaro-tools/iso-profiles || true
-          
-          # habilitando safe.directory
-          git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
+            echo "###################################################################"
+            echo "BUILD COMMAND            : buildiso ${SCOPE:+-f} -p community/$EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o}"
+            echo "Building ISO with kernel : linux${KERNEL_NAME}"
+            echo "PROFILE_PATH             : $PROFILE_PATH"
+            echo "EDITION                  : $EDITION"
+            echo "MANJAROBRANCH            : $MANJAROBRANCH"
+            echo "KERNEL_NAME              : $KERNEL_NAME"
+            echo "SCOPE                    : $SCOPE"
+            echo "OFFICE                   : $OFFICE"
+            echo "###################################################################"
+            
+            # Remover iso-profiles em /usr/share/manjaro-tools/iso-profiles
+            rm -rf /usr/share/manjaro-tools/iso-profiles || true
+            
+            # Criar link simbólico para /__w/build-iso/build-iso/iso-profiles
+            ln -sf /__w/build-iso/build-iso/iso-profiles /usr/share/manjaro-tools/iso-profiles || true
+            
+            # Habilitar safe.directory
+            git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
 
-          sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
-          
-          # Verificar se algum arquivo de kernel foi copiado
-          KERNEL_FILES=$(find /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot -name "vmlinuz*")
-          if [ -z "$KERNEL_FILES" ]; then
-              echo "Error: No kernel files found in /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot"
-              echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot:"
-              ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot
-              exit 1
-          else
-              echo "Kernel files found:"
-              echo "$KERNEL_FILES"
-          fi
+            # Executar buildiso e capturar o código de saída
+            buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
+            BUILD_EXIT_CODE=$?
+
+            # Verificar arquivos de kernel e tentar cópia manual, independentemente do resultado do buildiso
+            echo "Checking kernel files in rootfs:"
+            find /var/lib/manjaro-tools/buildiso/${EDITION}/x86_64/rootfs/boot -name "vmlinuz*"
+            
+            echo "Checking kernel files in iso/boot:"
+            find /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot -name "vmlinuz*"
+            
+            if [ ! -f "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/vmlinuz*" ]; then
+                echo "Warning: Kernel file not found in iso/boot. Attempting manual copy..."
+                mkdir -p "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot"
+                cp /var/lib/manjaro-tools/buildiso/${EDITION}/x86_64/rootfs/boot/vmlinuz* "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/" || echo "Manual copy failed"
+            fi
+
+            # Exibir conteúdo de diretórios relevantes para diagnóstico
+            echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/x86_64/rootfs/boot:"
+            ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/x86_64/rootfs/boot
+            
+            echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot:"
+            ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot
+
+            # Se buildiso falhou, sair com o código de erro
+            if [ $BUILD_EXIT_CODE -ne 0 ]; then
+                echo "Error: buildiso command failed with exit code $BUILD_EXIT_CODE"
+                exit $BUILD_EXIT_CODE
+            fi
         }
 
         cleanup_and_move_files() {
