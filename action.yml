@@ -625,7 +625,7 @@ runs:
 
         build_iso() {
             echo "###################################################################"
-            echo "BUILD COMMAND            : buildiso ${SCOPE:+-f} -p community/$EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o}"
+            echo "BUILD COMMAND            : buildiso ${SCOPE:+-f} -p $PROFILE_PATH/$EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o}"
             echo "Building ISO with kernel : linux${KERNEL_NAME}"
             echo "PROFILE_PATH             : $PROFILE_PATH"
             echo "EDITION                  : $EDITION"
@@ -639,13 +639,13 @@ runs:
             rm -rf /usr/share/manjaro-tools/iso-profiles || true
             
             # Criar link simbólico para /__w/build-iso/build-iso/iso-profiles
-            ln -sf /__w/build-iso/build-iso/iso-profiles /usr/share/manjaro-tools/iso-profiles || true
+            ln -sf $WORK_PATH/iso-profiles /usr/share/manjaro-tools/iso-profiles || true
             
             # Habilitar safe.directory
             git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
 
             # Executar buildiso e capturar o código de saída
-            buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
+            buildiso "${SCOPE:+-f}" -p "$PROFILE_PATH/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
             BUILD_EXIT_CODE=$?
 
             # Verificar arquivos de kernel e tentar cópia manual, independentemente do resultado do buildiso
