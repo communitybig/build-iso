@@ -448,25 +448,6 @@ runs:
             # Modificar o nome do arquivo ISO
             sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
-#             # Modificar a função prepare_boot_extras em util-iso-boot.sh
-#             sed -i '/prepare_boot_extras()/,/^}/c\
-#         prepare_boot_extras(){\
-#             mkdir -p "$2"\
-#             cp $1/boot/amd-ucode.img $2/amd_ucode.img\
-#             cp $1/boot/intel-ucode.img $2/intel_ucode.img\
-#             cp $1/usr/share/licenses/amd-ucode/LIC* $2/amd_ucode.LICENSE\
-#             cp $1/usr/share/licenses/intel-ucode/LIC* $2/intel_ucode.LICENSE\
-#             cp $1/boot/memtest86+/memtest.bin $2/memtest\
-#             local kernel_file=$(ls $1/boot/vmlinuz-${KERNEL_NAME}* 2>/dev/null || ls $1/boot/vmlinuz-*-${KERNEL_NAME} 2>/dev/null)\
-#             if [ -n "$kernel_file" ]; then\
-#                 cp "$kernel_file" $2/vmlinuz-x86_64\
-#                 echo "Kernel copied: $kernel_file" -> $2/vmlinuz-x86_64"\
-#             else\
-#                 echo "Error: Kernel file not found for KERNEL_NAME=${KERNEL_NAME}"\
-#                 ls -l $1/boot/\
-#             fi\
-#         }' /usr/lib/manjaro-tools/util-iso-boot.sh
-
             # Desabilitar a verificação de versão do kernel
             #sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
 
