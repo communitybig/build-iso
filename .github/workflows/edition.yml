@@ -153,13 +153,39 @@ jobs:
         shell: bash
         run: |
           echo "----------------------------------------"
-          echo "ISO path: ${{ steps.build.outputs.file-path }}"
+          echo "ISO path: ${{ steps.build.outputs.iso_path }}"
           echo "----------------------------------------"
-  
+
+      - name: Calculate ISO MD5 Hash
+        shell: bash
+        run: |
+          echo "Calculating MD5 hash for ISO file..."
+          ISO_PATH="${{ steps.build.outputs.iso_path }}"
+          echo "ISO_PATH is: '$ISO_PATH'"
+
+          if [ -f "$ISO_PATH" ]; then
+            md5sum "$ISO_PATH" > "${ISO_PATH}.md5"
+            echo "MD5 hash calculated and saved:"
+            cat "${ISO_PATH}.md5"
+          else
+            echo "Error: ISO file not found at $ISO_PATH"
+            exit 1
+          fi
+
+      - name: Prepare ISO for release
+        id: prepare-iso
+        shell: bash
+        run: |
+          ls -lh
+          release=$(basename "${{ steps.build.outputs.iso_path }}" .iso)
+          zip -j -0 -s 2000m ${release}.zip ${{ steps.build.outputs.iso_path }}
+          echo "release_name=${release}" >> $GITHUB_OUTPUT
+          echo "ISO prepared for release"
+
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ steps.build.outputs.release_name }}
+          name: ${{ steps.prepare-iso.outputs.release_name }}
           path: |
             ${{ steps.build.outputs.iso_path }}
             ${{ steps.build.outputs.iso_path }}.md5
@@ -173,7 +199,7 @@ jobs:
             ${{ steps.build.outputs.iso_path }}
             ${{ steps.build.outputs.iso_path }}.md5
             ${{ steps.build.outputs.iso_path }}.pkgs
-            ${{ steps.build.outputs.release_name }}.z*
+            ${{ steps.prepare-iso.outputs.release_name }}.z*
           tag_name: ${{ github.event.client_payload.release_tag || inputs.release_tag }}
-          name: ${{ steps.build.outputs.release_name }}
+          name: ${{ steps.prepare-iso.outputs.release_name }}
           generate_release_notes: true
