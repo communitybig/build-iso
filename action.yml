@@ -5,6 +5,7 @@ inputs:
   name:
     description: 'Name for the ISO'
     required: true
+    default: 'bigcommunity'
   iso_profiles_repo:
     description: "ISO profiles repository to clone"
     required: false
@@ -359,7 +360,7 @@ runs:
     - name: Build ISO Image
       shell: bash
       env:
-        DISTRONAME: ${{ inputs.name }}
+        DISTRONAME: ${{ inputs.name || 'bigcommunity' }}
         EDITION: ${{ inputs.edition }}
         MANJAROBRANCH: ${{ inputs.manjaro_branch }}
         COMMUNITYBRANCH: ${{ inputs.community_branch }}
@@ -626,40 +627,40 @@ runs:
         }
 
         build_iso() {
-            echo "###################################################################"
-            echo "BUILD COMMAND            : buildiso ${SCOPE:+-f} -p community/$EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o}"
-            echo "Building ISO with kernel : linux${KERNEL_NAME}"
-            echo "PROFILE_PATH             : $PROFILE_PATH"
-            echo "EDITION                  : $EDITION"
-            echo "MANJAROBRANCH            : $MANJAROBRANCH"
-            echo "KERNEL_NAME              : $KERNEL_NAME"
-            echo "SCOPE                    : $SCOPE"
-            echo "OFFICE                   : $OFFICE"
-            echo "###################################################################"
+          echo "###################################################################"
+          echo "BUILD COMMAND            : buildiso ${SCOPE:+-f} -p community/$EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o}"
+          echo "Building ISO with kernel : linux${KERNEL_NAME}"
+          echo "PROFILE_PATH             : $PROFILE_PATH"
+          echo "EDITION                  : $EDITION"
+          echo "MANJAROBRANCH            : $MANJAROBRANCH"
+          echo "KERNEL_NAME              : $KERNEL_NAME"
+          echo "SCOPE                    : $SCOPE"
+          echo "OFFICE                   : $OFFICE"
+          echo "###################################################################"
+          
+          # removendo iso-profiles em /usr/share/manjaro-tools/iso-profiles
+          rm -rf /usr/share/manjaro-tools/iso-profiles || true
+          
+          # criando link simbolico para /__w/build-iso/build-iso/iso-profiles
+          ln -sf /__w/build-iso/build-iso/iso-profiles /usr/share/manjaro-tools/iso-profiles || true
+          
+          # habilitando safe.directory
+          git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
 
-            # Verificar se o arquivo do kernel existe
-            KERNEL_FILE="/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/vmlinuz-x86_64"
-            if [ ! -f "$KERNEL_FILE" ]; then
-                echo "Error: Kernel file not found at $KERNEL_FILE"
-                echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot:"
-                ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot
-                exit 1
-            fi
-            
-            # removendo iso-profiles em /usr/share/manjaro-tools/iso-profiles
-            rm -rf /usr/share/manjaro-tools/iso-profiles || true
-            
-            # criando link simbolico para /__w/build-iso/build-iso/iso-profiles
-            ln -sf /__w/build-iso/build-iso/iso-profiles /usr/share/manjaro-tools/iso-profiles || true
-            
-            # habilitando safe.directory
-            git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
+          # Query settings and pretend build
+          sudo buildiso -qf || true
+          # END Query settings and pretend build
 
-            # Query settings and pretend build
-            sudo buildiso -qf || true
-            # END Query settings and pretend build
-
-            sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
+          sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
+          
+          # Verificar se o arquivo do kernel existe
+          KERNEL_FILE="/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/vmlinuz-x86_64"
+          if [ ! -f "$KERNEL_FILE" ]; then
+              echo "Error: Kernel file not found at $KERNEL_FILE"
+              echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot:"
+              ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot
+              exit 1
+          fi
         }
 
         cleanup_and_move_files() {
