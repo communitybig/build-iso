@@ -645,7 +645,7 @@ runs:
             git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
 
             # Executar buildiso e capturar o código de saída
-            buildiso "${SCOPE:+-f}" -p "$PROFILE_PATH/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
+            sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
             BUILD_EXIT_CODE=$?
 
             # Verificar arquivos de kernel e tentar cópia manual, independentemente do resultado do buildiso
