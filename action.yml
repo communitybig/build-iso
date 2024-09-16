@@ -450,13 +450,19 @@ runs:
             sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
             # Modificar a busca por versões de kernel em util-iso-boot.sh
-            #sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
+            sed -i '/_kernver=/s/_kernver=.*/_kernver=$(find $1\/usr\/lib\/modules\/ -type f -name version -exec cat {} +)/' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Adicionar logging para a versão do kernel
-            #sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
+            sed -i '/local _kernver=/a\    echo "Kernel version: ${_kernver}"' /usr/lib/manjaro-tools/util-iso-boot.sh
+            
+            # Modificar a cópia do kernel para usar vmlinuz*
+            sed -i 's/cp $1\/boot\/vmlinuz-x86_64/cp $1\/boot\/vmlinuz*/' /usr/lib/manjaro-tools/util-iso-boot.sh
+
+            # Adicionar logging para o arquivo do kernel copiado
+            sed -i '/cp $1\/boot\/vmlinuz*/a\    echo "Kernel file copied: $1/boot/vmlinuz*"' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Desabilitar a verificação de versão do kernel
-            #sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
+            sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
 
             # Configurar o caminho do perfil ISO
             sed -i "s|^iso_profile=.*|iso_profile=\"$PROFILE_PATH\"|" /etc/manjaro-tools/manjaro-tools.conf
@@ -636,19 +642,18 @@ runs:
           # habilitando safe.directory
           git config --global --add safe.directory /usr/share/manjaro-tools/iso-profiles || true
 
-          # Query settings and pretend build
-          sudo buildiso -qf || true
-          # END Query settings and pretend build
-
           sudo buildiso "${SCOPE:+-f}" -p "community/$EDITION" -b "$MANJAROBRANCH" -k "linux${KERNEL_NAME}" "${OFFICE:+-o}"
           
-          # Verificar se o arquivo do kernel existe
-          KERNEL_FILE="/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/vmlinuz-x86_64"
-          if [ ! -f "$KERNEL_FILE" ]; then
-              echo "Error: Kernel file not found at $KERNEL_FILE"
+          # Verificar se algum arquivo de kernel foi copiado
+          KERNEL_FILES=$(find /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot -name "vmlinuz*")
+          if [ -z "$KERNEL_FILES" ]; then
+              echo "Error: No kernel files found in /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot"
               echo "Contents of /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot:"
               ls -la /var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot
               exit 1
+          else
+              echo "Kernel files found:"
+              echo "$KERNEL_FILES"
           fi
         }
 
