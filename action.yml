@@ -693,18 +693,19 @@ runs:
         }
 
         cleanup_and_move_files() {
-          mkdir -p "$ISO_BASENAME"
-          
-          OUTPUT_ISO_PATH_NAME=$(find /__w/build-iso/build-iso -type f -name "*.iso" -exec stat -c '%Y %n' {} + | sort -nr | awk 'NR==1 {print $2}')
-          FILE_PKG=$(find /__w/build-iso/build-iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} + | sort -nr | awk 'NR==1 {print $2}')
-          
-          echo "ISO_BASENAME=$ISO_BASENAME" >> "$GITHUB_ENV"  # Exporta ISO_BASENAME para outras etapas
-          echo "ISO_BASENAME=$ISO_BASENAME"
-          echo "FILE_PKG=$FILE_PKG"
+            OUTPUT_ISO_PATH_NAME=$(find /var/cache/manjaro-tools/iso -type f -name "*.iso" -exec stat -c '%Y %n' {} + | sort -nr | awk 'NR==1 {print $2}')
+            FILE_PKG=$(find /var/cache/manjaro-tools/iso -type f -name "*-pkgs.txt" -exec stat -c '%Y %n' {} + | sort -nr | awk 'NR==1 {print $2}')
+            
+            echo "ISO_BASENAME=$ISO_BASENAME" >> "$GITHUB_ENV"  # Exporta ISO_BASENAME para outras etapas
 
-          mv -fv "$OUTPUT_ISO_PATH_NAME" "$WORK_PATH/$ISO_BASENAME" || echo "Failed to move ISO file"
-          mv -fv "$FILE_PKG" "$WORK_PATH/${ISO_BASENAME}.pkgs" || echo "Failed to move pkgs file"
-          echo "$WORK_PATH/$ISO_BASENAME" > iso_path_output.txt
+            echo "ISO_BASENAME=$ISO_BASENAME"
+            echo "FILE_PKG=$FILE_PKG"
+
+            mv -fv "$OUTPUT_ISO_PATH_NAME" "$WORK_PATH/$ISO_BASENAME" || echo "Failed to move ISO file"           
+            mv -fv "$FILE_PKG" "$WORK_PATH/${ISO_BASENAME}.pkgs" || echo "Failed to move pkgs file"
+            
+            # Definir o caminho do ISO para o output
+            echo "$WORK_PATH" > iso_path_output.txt
         }
 
         main() {
@@ -743,9 +744,9 @@ runs:
         }
         main
 
-    - name: Set action outputs
+    - name: Echo ISO path
       shell: bash
       run: |
-        ISO_PATH=$(cat iso_path_output.txt)
-        echo "ISO_PATH is: '$ISO_PATH'"
-        echo "iso_path=$ISO_PATH" >> "$GITHUB_OUTPUT"
+        echo "----------------------------------------"
+        echo "ISO path: ${{ steps.build.outputs.iso_path }}"
+        echo "----------------------------------------"
