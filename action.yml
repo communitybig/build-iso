@@ -448,24 +448,24 @@ runs:
             # Modificar o nome do arquivo ISO
             sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
-            # Modificar a função prepare_boot_extras em util-iso-boot.sh
-            sed -i '/prepare_boot_extras()/,/^}/c\
-        prepare_boot_extras(){\
-            mkdir -p "$2"\
-            cp $1/boot/amd-ucode.img $2/amd_ucode.img\
-            cp $1/boot/intel-ucode.img $2/intel_ucode.img\
-            cp $1/usr/share/licenses/amd-ucode/LIC* $2/amd_ucode.LICENSE\
-            cp $1/usr/share/licenses/intel-ucode/LIC* $2/intel_ucode.LICENSE\
-            cp $1/boot/memtest86+/memtest.bin $2/memtest\
-            local kernel_file=$(ls $1/boot/vmlinuz-${KERNEL_NAME}* 2>/dev/null || ls $1/boot/vmlinuz-*-${KERNEL_NAME} 2>/dev/null)\
-            if [ -n "$kernel_file" ]; then\
-                cp "$kernel_file" $2/vmlinuz-x86_64\
-                echo "Kernel copied: $kernel_file"\
-            else\
-                echo "Error: Kernel file not found for KERNEL_NAME=${KERNEL_NAME}"\
-                ls -l $1/boot/\
-            fi\
-        }' /usr/lib/manjaro-tools/util-iso-boot.sh
+#             # Modificar a função prepare_boot_extras em util-iso-boot.sh
+#             sed -i '/prepare_boot_extras()/,/^}/c\
+#         prepare_boot_extras(){\
+#             mkdir -p "$2"\
+#             cp $1/boot/amd-ucode.img $2/amd_ucode.img\
+#             cp $1/boot/intel-ucode.img $2/intel_ucode.img\
+#             cp $1/usr/share/licenses/amd-ucode/LIC* $2/amd_ucode.LICENSE\
+#             cp $1/usr/share/licenses/intel-ucode/LIC* $2/intel_ucode.LICENSE\
+#             cp $1/boot/memtest86+/memtest.bin $2/memtest\
+#             local kernel_file=$(ls $1/boot/vmlinuz-${KERNEL_NAME}* 2>/dev/null || ls $1/boot/vmlinuz-*-${KERNEL_NAME} 2>/dev/null)\
+#             if [ -n "$kernel_file" ]; then\
+#                 cp "$kernel_file" $2/vmlinuz-x86_64\
+#                 echo "Kernel copied: $kernel_file" -> $2/vmlinuz-x86_64"\
+#             else\
+#                 echo "Error: Kernel file not found for KERNEL_NAME=${KERNEL_NAME}"\
+#                 ls -l $1/boot/\
+#             fi\
+#         }' /usr/lib/manjaro-tools/util-iso-boot.sh
 
             # Desabilitar a verificação de versão do kernel
             #sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
@@ -516,14 +516,12 @@ runs:
           
           echo "KERNEL set to: $KERNEL"
 
-          # Limpar Packages-Root de kernels anteriores
-          sed -i '/^linux[0-9]/d' "$PROFILE_PATH/$EDITION/Packages-Root"
-          sed -i '/^linux-latest/d' "$PROFILE_PATH/$EDITION/Packages-Root"
-          sed -i '/^linux-firmware/d' "$PROFILE_PATH/$EDITION/Packages-Root"
-
-          # Remover explicitamente o kernel 5.4 e seus headers
-          sed -i '/^linux54/d' "$PROFILE_PATH/$EDITION/Packages-Root"
-          sed -i '/^linux54-headers/d' "$PROFILE_PATH/$EDITION/Packages-Root"
+          # Limpar kernels anteriores de todos os Packages-*
+          for pkg_file in "$PROFILE_PATH/$EDITION"/Packages-*; do
+              sed -i '/^linux[0-9]/d' "$pkg_file"
+              sed -i '/^linux-latest/d' "$pkg_file"
+              sed -i '/^linux-firmware/d' "$pkg_file"
+          done
           
           # Adicionar o kernel e firmware necessários
           if [[ "$KERNEL" == "-xanmod"* ]]; then
@@ -536,17 +534,52 @@ runs:
               KERNEL_NAME="$KERNEL"
           fi
 
+          # Add this code to create KERNEL_VERSION_DOT
+          if [[ "$KERNEL_NAME" =~ ^[0-9]+$ ]]; then
+              if [[ ${#KERNEL_NAME} -eq 3 ]]; then
+                  KERNEL_VERSION_DOT="${KERNEL_NAME:0:1}.${KERNEL_NAME:1:2}"
+              elif [[ ${#KERNEL_NAME} -eq 2 ]]; then
+                  KERNEL_VERSION_DOT="${KERNEL_NAME:0:1}.${KERNEL_NAME:1:1}"
+              else
+                  KERNEL_VERSION_DOT="$KERNEL_NAME"
+              fi
+          else
+              KERNEL_VERSION_DOT="$KERNEL_NAME"
+          fi
+
+          echo "KERNEL_VERSION_DOT set to: $KERNEL_VERSION_DOT"
+          
+                    # Modificar a função prepare_boot_extras em util-iso-boot.sh
+            sed -i "/prepare_boot_extras()/,/^}/c\\
+            prepare_boot_extras(){\\
+                mkdir -p \"\$2\"\\
+                cp \$1/boot/amd-ucode.img \$2/amd_ucode.img\\
+                cp \$1/boot/intel-ucode.img \$2/intel_ucode.img\\
+                cp \$1/usr/share/licenses/amd-ucode/LIC* \$2/amd_ucode.LICENSE\\
+                cp \$1/usr/share/licenses/intel-ucode/LIC* \$2/intel_ucode.LICENSE\\
+                cp \$1/boot/memtest86+/memtest.bin \$2/memtest\\
+                local kernel_file=\$(ls \$1/boot/vmlinuz-${KERNEL_VERSION_DOT}-* 2>/dev/null || ls \$1/boot/vmlinuz-*-${KERNEL_VERSION_DOT}* 2>/dev/null)\\
+                if [ -n \"\$kernel_file\" ]; then\\
+                    cp \"\$kernel_file\" \$2/vmlinuz-x86_64\\
+                    echo \"Kernel copied: \$kernel_file -> \$2/vmlinuz-x86_64\"\\
+                else\\
+                    echo \"Error: Kernel file not found for KERNEL_VERSION_DOT=${KERNEL_VERSION_DOT}\"\\
+                    ls -l \$1/boot/\\
+                fi\\
+            }" /usr/lib/manjaro-tools/util-iso-boot.sh
+          
           echo "linux${KERNEL_NAME}" >> "$PROFILE_PATH/$EDITION/Packages-Root"
           
           echo "KERNEL_NAME set to: $KERNEL_NAME"
           echo "Contents of $PROFILE_PATH/$EDITION/Packages-Root:"
           cat "$PROFILE_PATH/$EDITION/Packages-Root"
           
-          # Remover o kernel 5.4 da cache do pacman, se existir
-          if pacman -Ss linux54 &> /dev/null; then
-              echo "Removing linux54 from pacman cache..."
-              sudo pacman -Rdd linux54 linux54-headers --noconfirm || true
-          fi
+          echo "Conteúdo dos arquivos Packages após a limpeza e adição do kernel:"
+          for pkg_file in "$PROFILE_PATH/$EDITION"/Packages-*; do
+              echo "### $pkg_file ###"
+              cat "$pkg_file"
+              echo ""
+          done
         }
 
         configure_repos() {
