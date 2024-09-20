@@ -742,7 +742,7 @@ runs:
         }
         main
 
-        - name: Set ISO path
-          shell: bash
-          run: |
-            echo "ISO_PATH=$WORK_PATH/$ISO_BASENAME" >> $GITHUB_ENV
+    - name: Set ISO path
+      shell: bash
+      run: |
+        echo "ISO_PATH=$WORK_PATH/$ISO_BASENAME" >> $GITHUB_ENV
