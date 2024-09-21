@@ -71,6 +71,7 @@ runs:
         echo "##########################################################################"
         echo "Current host is     : $(hostname)"
         echo "Current user is     : $(whoami)"
+        echo "Current user's groups: $(groups)"
         echo "Current user ID is  : $(id -u)"
         echo "Current user details: $(id)"
         echo "##########################################################################"
@@ -105,9 +106,9 @@ runs:
       shell: bash
       run: |
         # Configurar o ambiente para o usuário builduser
-        echo 'PACKAGER="Community Package/ISO Build <talesam@gmail.com>"' | sudo tee -a /home/builduser/.makepkg.conf
-        sudo mkdir -p /home/builduser/.config/manjaro-tools
-        echo "run_dir=/__w/build-iso/build-iso/iso-profiles" | sudo tee /home/builduser/.config/manjaro-tools/iso-profiles.conf
+        echo 'PACKAGER="Community Package/ISO Build <talesam@gmail.com>"' | tee -a /home/builduser/.makepkg.conf
+        mkdir -p /home/builduser/.config/manjaro-tools
+        echo "run_dir=/__w/build-iso/build-iso/iso-profiles" | tee -a /home/builduser/.config/manjaro-tools/iso-profiles.conf
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles
 
         # Verificar as configurações
@@ -140,17 +141,26 @@ runs:
         echo "${DISABLE_FSYNC_FILE}" | sudo tee -a "${PRELOAD_FILE}"
         sudo ldconfig
 
-    - name: Update keys and pacman database
+    - name: Pull and setup Community keys
       shell: bash
       run: |
-        # Atualizar chaves
-        sudo pacman-key --refresh-keys
-
+        echo "Pulling and installing Community keys..."
+        git clone https://github.com/biglinux/biglinux-key.git
+        sudo install -dm755 /etc/pacman.d/gnupg/
+        sudo install -m0644 biglinux-key/usr/share/pacman/keyrings/* /etc/pacman.d/gnupg/
+        sudo rm -r biglinux-key
+        
+        # Inicializar o chaveiro do pacman, se necessário
+        sudo pacman-key --init
+        
+        # Receber e assinar a chave do Community
+        sudo pacman-key --recv-keys AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
+        sudo pacman-key --lsign-key AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
+        
         # Atualizar os bancos de dados do pacman
-        sudo pacman -Sy --quiet
-
-        # Verificar se as chaves necessárias estão presentes
-        sudo pacman-key --list-keys AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
+        sudo pacman -Sy
+        
+        echo "Community keys installed and system updated."
 
     - name: Configure repositories and build environment
       shell: bash
