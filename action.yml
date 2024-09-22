@@ -85,7 +85,7 @@ runs:
       run: |
         echo "Setting up build environment..."
         # Setup build environment
-        # atualizar e instalar pacotes adicionais
+        # Update and install additional packages
         sudo pacman -Syu --quiet --needed --noconfirm \
           mktorrent \
           squashfs-tools \
@@ -96,32 +96,41 @@ runs:
           calamares-tools \
           mkinitcpio > /dev/null
 
-    - name: Ajuste nos hooks do mkinitcpio
+    - name: Adjustment in mkinitcpio hooks
       shell: bash
       run: |
-        # Ajuste nos hooks do mkinitcpio (se ainda necessário)
+        # Adjustment in mkinitcpio hooks (if still necessary)
         sudo sed -i -e 's|File|Path|' /usr/share/libalpm/hooks/*hook*
         
-    - name: Ajustar variáveis de ambiente
+    - name: Adjust environment variables
       shell: bash
       run: |
         WORK_PATH="/__w/build-iso/build-iso"
         WORK_PATH_ISO_PROFILES="/__w/build-iso/build-iso/iso-profiles"
         PROFILE_PATH="/__w/build-iso/build-iso/iso-profiles/community"
-        echo "WORK_PATH=$WORK_PATH"                           >> $GITHUB_ENV  # Exporta para outras etapas
-        echo "WORK_PATH_ISO_PROFILES=$WORK_PATH_ISO_PROFILES" >> $GITHUB_ENV  # Exporta para outras etapas
-        echo "PROFILE_PATH=$PROFILE_PATH"                     >> $GITHUB_ENV  # Exporta para outras etapas
+        PATH_MANJARO_ISO_PROFILES="/usr/share/manjaro-tools/iso-profiles"
+        PATH_MANJARO_TOOLS="/usr/share/manjaro-tools"
+        VAR_CACHE_MANJARO_TOOLS="/var/cache/manjaro-tools"
+        VAR_CACHE_MANJARO_TOOLS_ISO="/var/cache/manjaro-tools/iso"
+
+        echo "WORK_PATH=$WORK_PATH" >> $GITHUB_ENV
+        echo "WORK_PATH_ISO_PROFILES=$WORK_PATH_ISO_PROFILES" >> $GITHUB_ENV
+        echo "PROFILE_PATH=$PROFILE_PATH" >> $GITHUB_ENV
+        echo "PATH_MANJARO_ISO_PROFILES=$PATH_MANJARO_ISO_PROFILES" >> $GITHUB_ENV
+        echo "PATH_MANJARO_TOOLS=$PATH_MANJARO_TOOLS" >> $GITHUB_ENV
+        echo "VAR_CACHE_MANJARO_TOOLS=$VAR_CACHE_MANJARO_TOOLS" >> $GITHUB_ENV
+        echo "VAR_CACHE_MANJARO_TOOLS_ISO=$VAR_CACHE_MANJARO_TOOLS_ISO" >> $GITHUB_ENV
 
     - name: Configure the environment for builduser
       shell: bash
       run: |
-        # Configurar o ambiente para o usuário builduser
+        # Set up the environment for the builduser
         echo 'PACKAGER="Community Package/ISO Build <talesam@gmail.com>"' | tee -a /home/builduser/.makepkg.conf
         mkdir -p /home/builduser/.config/manjaro-tools
         echo "run_dir=/__w/build-iso/build-iso/iso-profiles" | tee -a /home/builduser/.config/manjaro-tools/iso-profiles.conf
         git config --global --add safe.directory /__w/build-iso/build-iso/iso-profiles
 
-        # Verificar as configurações
+        # Check the configurations
         echo "Conteúdo de /home/builduser/.makepkg.conf:"
         cat /home/builduser/.makepkg.conf
         echo "Conteúdo de /home/builduser/.config/manjaro-tools/iso-profiles.conf:"
@@ -132,7 +141,7 @@ runs:
     - name: Additional configurations specific to ISO building
       shell: bash
       run: |
-        # Configurações adicionais específicas para a construção de ISO
+        # Additional specific configurations for ISO building
         sudo sed -i 's|dist_name=\$(get_distname)|dist_name=BigCommunity|g' /usr/lib/manjaro-tools/util.sh
         sudo sed -i 's|iso_name=\$(get_osid)|iso_name=bigcommunity|g' /usr/lib/manjaro-tools/util.sh
 
@@ -160,28 +169,23 @@ runs:
         sudo install -m0644 biglinux-key/usr/share/pacman/keyrings/* /etc/pacman.d/gnupg/
         sudo rm -r biglinux-key
         
-        # Inicializar o chaveiro do pacman, se necessário
+        # Initialize the pacman keyring, if necessary
         sudo pacman-key --init
         
-        # Receber e assinar a chave do Community
+        # Receive and sign the Community key
         sudo pacman-key --recv-keys AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
         sudo pacman-key --lsign-key AECEEE84E52BBFAA9F1C9DF01EA0CEEEB09B44A3
         
-        # Atualizar os bancos de dados do pacman
+        # Update the pacman databases
         sudo pacman -Sy
         
         echo "Community keys installed and system updated."
 
     - name: Configure repositories and build environment
       shell: bash
-      env:
-        PATH_MANJARO_ISO_PROFILES: "/usr/share/manjaro-tools/iso-profiles"
-        PATH_MANJARO_TOOLS: "/usr/share/manjaro-tools"
-        VAR_CACHE_MANJARO_TOOLS: "/var/cache/manjaro-tools"
-        VAR_CACHE_MANJARO_TOOLS_ISO: "/var/cache/manjaro-tools/iso"
       run: |
         # Configuring repositories and build environment...
-        # Função para adicionar repositórios
+        # Function to add repositories
         add_repository() {
           local arquivo_conf=$1
 
