@@ -457,8 +457,10 @@ runs:
           # Modificar o nome do arquivo ISO
           sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
-          # Desabilitar a verificação de versão do kernel
-          #sudo sed -i '/${iso_kernel}/s/^/#/' /usr/lib/manjaro-tools/util-iso.sh
+          # Configurar profile
+          sudo sed -i "s|profile=.*|profile=\"$EDITION\"|g" /usr/lib/manjaro-tools/util.sh
+          echo "Verificando a configuração do perfil:"
+          grep "profile=" /usr/lib/manjaro-tools/util.sh
           
           # Adicionar limpezas do Big
           add_big_cleanups
