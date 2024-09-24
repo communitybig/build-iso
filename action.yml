@@ -458,9 +458,9 @@ runs:
           sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
           # Configurar profile
-          sudo sed -i "s|profile=.*|profile=\"$EDITION\"|g" /usr/lib/manjaro-tools/util.sh
+          sed -i "s/profile=.*/profile=\"\$EDITION\"/" /usr/lib/manjaro-tools/util-iso.sh
           echo "Verificando a configuração do perfil:"
-          grep "profile=" /usr/lib/manjaro-tools/util.sh
+          grep "profile=" /usr/lib/manjaro-tools/util-iso.sh
           
           # Adicionar limpezas do Big
           add_big_cleanups
