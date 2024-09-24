@@ -458,7 +458,7 @@ runs:
           sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
 
           # Configurar profile
-          sed -i "s/profile=.*/profile=\"\$EDITION\"/" /usr/lib/manjaro-tools/util-iso.sh
+          sudo sed -i "s/profile=.*/profile=\"\$EDITION\"/" /usr/lib/manjaro-tools/util-iso.sh
           echo "Verificando a configuração do perfil:"
           grep "profile=" /usr/lib/manjaro-tools/util-iso.sh
           
