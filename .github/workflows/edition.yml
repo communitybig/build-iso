@@ -73,7 +73,7 @@ on:
           - kde
           - xfce
           - wmaker
-        default: "xfce"
+        # required: true
 
 jobs:
   setup:
