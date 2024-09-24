@@ -456,6 +456,10 @@ runs:
 
           # Modificar o nome do arquivo ISO
           sudo sed -i 's|_${profile}${_edition}_${dist_release//.}|-live|' /usr/lib/manjaro-tools/util-iso.sh
+
+          # Configurar profile
+          sudo sed -i "s|profile=.*|profile=\"$EDITION\"|" /usr/lib/manjaro-tools/util-iso.sh
+          sudo sed -i "s|profile_dir=.*|profile_dir=\"$PROFILE_PATH/$EDITION\"|" /usr/lib/manjaro-tools/util-iso.sh
           
           # Adicionar limpezas do Big
           add_big_cleanups
