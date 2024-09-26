@@ -201,15 +201,15 @@ jobs:
             exit 1
           fi
 
-      # - name: Prepare ISO for release
-      #   id: prepare-iso
-      #   shell: bash
-      #   run: |
-      #     ls -lh
-      #     release=$(basename "${{ env.ISO_PATH }}" .iso)
-      #     sudo zip -j -0 -s 2000m ${release}.zip ${{ env.ISO_PATH }}
-      #     echo "release_name=${release}" >> $GITHUB_OUTPUT
-      #     echo "ISO prepared for release"
+      - name: Prepare ISO for release
+        id: prepare-iso
+        shell: bash
+        run: |
+          ls -lh
+          release=$(basename "${{ env.ISO_PATH }}" .iso)
+          sudo zip -j -0 -s 2000m ${release}.zip ${{ env.ISO_PATH }}
+          echo "release_name=${release}" >> $GITHUB_OUTPUT
+          echo "ISO prepared for release"
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v3
