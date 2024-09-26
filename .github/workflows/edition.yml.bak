@@ -2,69 +2,69 @@ name: ISO Build
 
 on:
   repository_dispatch:
-    types: 
-      - 'ISO-*'
+    types:
+      - "ISO-*"
   workflow_dispatch:
     inputs:
       name:
         type: string
-        description: 'Name for the ISO'
+        description: "Name for the ISO"
         required: true
-        default: 'bigcommunity'
+        default: "bigcommunity"
       scope:
         type: choice
-        description: 'Build scope'
+        description: "Build scope"
         options:
           - full
           - minimal
-        default: 'full'
+        default: "full"
       office-chooser:
         type: boolean
-        description: 'Include office suite'
+        description: "Include office suite"
         required: false
         default: false
       tmate:
         type: boolean
-        description: 'Enable debugging with tmate'
+        description: "Enable debugging with tmate"
         required: false
         default: false
       release_tag:
         type: string
-        description: 'Release tag (e.g., YYYY-MM-DD_HH-mm)'
+        description: "Release tag (e.g., YYYY-MM-DD_HH-mm)"
         required: true
       kernel:
         type: choice
-        description: 'Kernel version'
+        description: "Kernel version"
         options:
           - latest
           - lts
           - oldLts
-        default: 'lts'
+        default: "lts"
       manjaro_branch:
         type: choice
-        description: 'Manjaro branch'
+        description: "Manjaro branch"
         options:
           - stable
           - testing
           - unstable
-        default: 'stable'
+        default: "stable"
       community_branch:
         type: choice
-        description: 'Community branch'
+        description: "Community branch"
         options:
           - stable
           - testing
-        default: 'stable'
+        default: "stable"
       biglinux_branch:
         type: choice
-        description: 'BigLinux branch'
+        description: "BigLinux branch"
         options:
           - stable
           - testing
-        default: 'stable'
+        default: "stable"
       edition:
         type: choice
-        description: 'Edition'
+        description: "Edition"
         options:
           - cinnamon
           - cosmic
@@ -73,26 +73,70 @@ on:
           - kde
           - xfce
           - wmaker
-        default: 'xfce'
+        # required: true
 
 jobs:
-  build:
-    name: Build ISO ${{ github.event.client_payload.edition || 'Unknown' }}
+  setup:
     runs-on: ubuntu-latest
-    container:
-      image: talesam/community-build:1.4
-      options: --privileged
-      volumes:
-        - /mnt/var_lib_manjaro_tools_buildiso:/var/lib/manjaro-tools/buildiso
-        - /mnt/var_cache_manjaro_tools_iso:/var/cache/manjaro-tools/iso
-      
     steps:
+      - name: Create a Welcome file
+        run: |
+          echo "Hello from setup job" > shared_file.txt
+
+      - name: Install dependencies on HOST
+        run: |
+          #sudo apt-get update
+          sudo apt-get install -y inetutils-tools
+
       - name: Set up volume directory on HOST
         run: |
           sudo mkdir -p /mnt/var_lib_manjaro_tools_buildiso
           sudo mkdir -p /mnt/var_cache_manjaro_tools_iso
 
-          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: shared-file
+          path: shared_file.txt
+
+      - name: Display the current user in host
+        run: |
+          # Display the current user in host
+          echo "#########################################"
+          echo "Current host is: $(hostname)"
+          echo "Current user is: $(whoami)"
+          echo "Current user ID is: $(id -u)"
+          echo "Current user details:"
+          id
+          echo "#########################################"
+          df -hT
+          echo "#########################################"
+          ls -lah --color=auto /mnt
+          echo "#########################################"
+
+  build:
+    name: Build ISO ${{ github.event.client_payload.edition || 'Unknown' }}
+    runs-on: ubuntu-latest
+    needs: [setup] # Espera o job "setup" terminar
+    container:
+      image: talesam/community-build:1.4.1
+      options: --privileged
+      volumes:
+        - /mnt/var_lib_manjaro_tools_buildiso:/var/lib/manjaro-tools/buildiso
+        - /mnt/var_cache_manjaro_tools_iso:/var/cache/manjaro-tools/iso
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: shared-file
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          #fetch-depth: 0    # Todo o histórico de commits seja baixado
+          fetch-depth: 1 # Apenas o commit mais recente da branch será baixado
+  
       - name: Display the current user in host
         run: |
           # Display the current user in host
@@ -106,21 +150,7 @@ jobs:
           df -hT
           echo "#########################################"
           ls -la /mnt
-          echo "#########################################"    
-      
-      - name: Initial Debug
-        run: |
-          echo "Workflow started"
-          echo "Event Name: ${{ github.event_name }}"
-          echo "Event Action: ${{ github.event.action }}"
-          echo "Edition: ${{ github.event.client_payload.edition || inputs.edition }}"
-          echo "Tmate from payload: ${{ github.event.client_payload.tmate }}"
-          echo "Full github event: ${{ toJson(github.event) }}"
-    
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+          echo "#########################################"
 
       - name: Build ISO
         uses: ./
@@ -158,7 +188,7 @@ jobs:
           echo "Calculating MD5 hash for ISO file..."
           echo "ISO_PATH is: '${{ env.ISO_PATH }}'"
           if [ -f "${{ env.ISO_PATH }}" ]; then
-            md5sum "${{ env.ISO_PATH }}" > "${{ env.ISO_PATH }}.md5"
+            sudo md5sum "${{ env.ISO_PATH }}" > "${{ env.ISO_PATH }}.md5"
             echo "MD5 hash calculated and saved:"
             cat "${{ env.ISO_PATH }}.md5"
           else
@@ -166,15 +196,15 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare ISO for release
-        id: prepare-iso
-        shell: bash
-        run: |
-          ls -lh
-          release=$(basename "${{ env.ISO_PATH }}" .iso)
-          zip -j -0 -s 2000m ${release}.zip ${{ env.ISO_PATH }}
-          echo "release_name=${release}" >> $GITHUB_OUTPUT
-          echo "ISO prepared for release"
+      # - name: Prepare ISO for release
+      #   id: prepare-iso
+      #   shell: bash
+      #   run: |
+      #     ls -lh
+      #     release=$(basename "${{ env.ISO_PATH }}" .iso)
+      #     sudo zip -j -0 -s 2000m ${release}.zip ${{ env.ISO_PATH }}
+      #     echo "release_name=${release}" >> $GITHUB_OUTPUT
+      #     echo "ISO prepared for release"
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v3

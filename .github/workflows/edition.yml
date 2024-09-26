@@ -6,10 +6,13 @@ on:
       - "ISO-*"
   workflow_dispatch:
     inputs:
-      name:
-        type: string
-        description: "Name for the ISO"
+      distroname:
+        type: choice
+        description: "Distroname for the ISO"
         required: true
+        options:
+          - bigcommunity
+          - biglinux
         default: "bigcommunity"
       scope:
         type: choice
@@ -39,7 +42,7 @@ on:
           - latest
           - lts
           - oldLts
-        default: "lts"
+        default: lts
       manjaro_branch:
         type: choice
         description: "Manjaro branch"
@@ -47,21 +50,21 @@ on:
           - stable
           - testing
           - unstable
-        default: "stable"
+        default: stable
       community_branch:
         type: choice
         description: "Community branch"
         options:
           - stable
           - testing
-        default: "stable"
+        default: testing
       biglinux_branch:
         type: choice
         description: "BigLinux branch"
         options:
           - stable
           - testing
-        default: "stable"
+        default: testing
       edition:
         type: choice
         description: "Edition"
@@ -73,7 +76,7 @@ on:
           - kde
           - xfce
           - wmaker
-        # required: true
+        default: xfce
 
 jobs:
   setup:
@@ -86,6 +89,7 @@ jobs:
       - name: Install dependencies on HOST
         run: |
           #sudo apt-get update
+          sudo apt-get autoremove
           sudo apt-get install -y inetutils-tools
 
       - name: Set up volume directory on HOST
@@ -115,7 +119,7 @@ jobs:
           echo "#########################################"
 
   build:
-    name: Build ISO ${{ github.event.client_payload.edition || 'Unknown' }}
+    name: Build ISO ${{ github.event.client_payload.distroname || inputs.distroname }} ${{ github.event.client_payload.edition || inputs.edition }}
     runs-on: ubuntu-latest
     needs: [setup] # Espera o job "setup" terminar
     container:
@@ -149,7 +153,9 @@ jobs:
           echo "#########################################"
           df -hT
           echo "#########################################"
-          ls -la /mnt
+          ls -lah --color=auto /mnt
+          echo "#########################################"
+          tree -d /mnt
           echo "#########################################"
 
       - name: Build ISO
@@ -157,8 +163,8 @@ jobs:
         id: build
         with:
           # Parâmetros básicos da ISO
-          name: ${{ github.event.client_payload.name || inputs.name }}
-          edition: ${{ github.event.client_payload.edition || inputs.edition }}
+          distroname: ${{ github.event.client_payload.distroname || inputs.distroname || 'bigcommunity' }}
+          edition: ${{ github.event.client_payload.edition || inputs.edition}}
           release_tag: ${{ github.event.client_payload.release_tag || inputs.release_tag }}
           kernel: ${{ github.event.client_payload.kernel || inputs.kernel }}
           scope: ${{ github.event.client_payload.scope || inputs.scope }}
@@ -170,11 +176,10 @@ jobs:
           biglinux_branch: ${{ github.event.client_payload.biglinux_branch || inputs.biglinux_branch }}
 
           # Depuração
-          tmate: ${{ github.event.client_payload.tmate || 'false' }}
+          tmate: ${{ inputs.tmate != false && inputs.tmate || github.event.client_payload.tmate || false }}
 
           # Tokens e segredos
           github_token: ${{ secrets.TOKEN_RELEASE }}
-
           # Parâmetros adicionais (se necessário)
           # iso_profiles_repo: ${{ github.event.client_payload.iso_profiles_repo || inputs.iso_profiles_repo }}
           # iso_profiles_branch: ${{ github.event.client_payload.iso_profiles_branch || inputs.iso_profiles_branch }}
@@ -196,15 +201,15 @@ jobs:
             exit 1
           fi
 
-      - name: Prepare ISO for release
-        id: prepare-iso
-        shell: bash
-        run: |
-          ls -lh
-          release=$(basename "${{ env.ISO_PATH }}" .iso)
-          sudo zip -j -0 -s 2000m ${release}.zip ${{ env.ISO_PATH }}
-          echo "release_name=${release}" >> $GITHUB_OUTPUT
-          echo "ISO prepared for release"
+      # - name: Prepare ISO for release
+      #   id: prepare-iso
+      #   shell: bash
+      #   run: |
+      #     ls -lh
+      #     release=$(basename "${{ env.ISO_PATH }}" .iso)
+      #     sudo zip -j -0 -s 2000m ${release}.zip ${{ env.ISO_PATH }}
+      #     echo "release_name=${release}" >> $GITHUB_OUTPUT
+      #     echo "ISO prepared for release"
 
       - name: Upload ISO as artifact
         uses: actions/upload-artifact@v3
