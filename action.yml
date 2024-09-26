@@ -228,7 +228,7 @@ runs:
         pushd "$WORK_PATH" || true
         #source "$WORK_PATH/mkiso-bigcommunity"
         #make_iso
-        ./mkiso-bigcommunity --automatic
+        sudo ./mkiso-bigcommunity --automatic
 
     - name: Set ISO path
       shell: bash
