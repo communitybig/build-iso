@@ -1103,11 +1103,11 @@ make_iso() {
 	# Starting kernel configuration
 	configure_kernel
 
-	# Starting repository configuration
-	for fileconfig in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
-		msg_info "Configurando repositórios em: $fileconfig"
-		configure_repos "$PROFILE_PATH_EDITION/$fileconfig" "$COMMUNITYBRANCH" "$BIGBRANCH"
-	done
+# Starting repository configuration
+  for fileconfig in pacman.conf; do
+    msg_info "Configurando repositórios em: $fileconfig"
+    configure_repos "$WORK_PATH_ISO_PROFILES/shared/$fileconfig" "$COMMUNITYBRANCH" "$BIGBRANCH"
+  done
 
 	set_build_info
 	configure_iso_name
