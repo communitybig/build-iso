@@ -436,20 +436,20 @@ checkout_iso-profiles_and_clean_directories() {
 export -f checkout_iso-profiles_and_clean_directories
 
 cleaning_working_directories() {
-	local path_dirs=('/__t'
-		'/usr/share/manjaro-tools'
-		'/var/lib/manjaro-tools'
-		'/usr/lib/manjaro-tools'
-		'/var/cache/manjaro-tools/iso'
-	)
-	local cpath
+  local path_dirs=('/__t'
+    '/usr/share/manjaro-tools'
+    '/usr/lib/manjaro-tools'
+    '/var/lib/manjaro-tools/buildiso'
+    '/var/cache/manjaro-tools'
+  )
+  local cpath
 
-	for cpath in "${path_dirs[@]}"; do
-		if [[ -d "$cpath" ]]; then
-			msg "Limpando diretório: $cpath"
-			sudo rm -rf "$cpath"/* || true
-		fi
-	done
+  for cpath in "${path_dirs[@]}"; do
+    if [[ -d "$cpath" ]]; then
+      msg "Limpando diretório: $cpath"
+      sudo rm -rf "$cpath"/* || true
+    fi
+  done
 }
 
 #Step 1 - Setup BUILD - check_directories_and_path
