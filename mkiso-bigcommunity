@@ -42,8 +42,19 @@ configure_vars() {
 	REPO_PATH="$PWD"
 	USERNAME="$USER"
 	HOME_FOLDER="/home/$USERNAME"
+	get_distroname() {
+		create_menu \
+			"Escolha nome da distribuição:" \
+			"bigcommunity" \
+			"biglinux" \
+			"Sair"
+		if [[ $MENU_RESULT == "Sair" ]]; then
+			die "${red}" "Construção da ISO cancelada.${reset}"
+		fi
+		DISTRONAME="${MENU_RESULT}"
+	}
 
-	get_repo() {
+	get_iso_profiles_repo() {
 		create_menu \
 			'Escolha uma repositório iso-profiles:' \
 			'https://github.com/talesam/iso-profiles' \
@@ -58,12 +69,12 @@ configure_vars() {
 	get_edition() {
 		create_menu \
 			"Escolha uma EDICÃO/DE para a ISO:" \
+			"xfce" \
 			"cinnamon" \
 			"cosmic" \
 			"deepin" \
 			"gnome" \
 			"kde" \
-			"xfce" \
 			"wmaker" \
 			"Sair"
 		if [[ $MENU_RESULT == "Sair" ]]; then
@@ -71,8 +82,10 @@ configure_vars() {
 		fi
 		EDITION="${MENU_RESULT}"
 	}
+
+	get_distroname
 	get_edition
-	get_repo
+	get_iso_profiles_repo
 	WORK_PATH="$HOME_FOLDER/__w/build-iso/build-iso"
 	WORK_PATH_ISO_PROFILES="$HOME_FOLDER/__w/build-iso/build-iso/iso-profiles"
 	PROFILE_PATH="$HOME_FOLDER/__w/build-iso/build-iso/iso-profiles/community"
@@ -81,18 +94,6 @@ configure_vars() {
 	PATH_MANJARO_TOOLS='/usr/share/manjaro-tools'
 	VAR_CACHE_MANJARO_TOOLS='/var/cache/manjaro-tools'
 	VAR_CACHE_MANJARO_TOOLS_ISO='/var/cache/manjaro-tools/iso'
-	get_distroname() {
-		create_menu \
-			"Escolha nome da distribuição:" \
-			"bigcommunity" \
-			"biglinux" \
-			"Sair"
-		if [[ $MENU_RESULT == "Sair" ]]; then
-			die "${red}" "Construção da ISO cancelada.${reset}"
-		fi
-		DISTRONAME="${MENU_RESULT}"
-	}
-	get_distroname
 	get_debug() {
 		create_menu \
 			"Escolha uma opcao para DEBUG:" \
@@ -121,8 +122,8 @@ configure_vars() {
 	get_communitybranch() {
 		create_menu \
 			"Escolha uma opcao para Branch do BigCommunity:" \
-			"stable" \
 			"testing" \
+			"stable" \
 			"unstable" \
 			"Sair"
 		if [[ $MENU_RESULT == "Sair" ]]; then
@@ -134,8 +135,8 @@ configure_vars() {
 	get_bigbranch() {
 		create_menu \
 			"Escolha uma opcao para Branch do BigLinux:" \
-			"stable" \
 			"testing" \
+			"stable" \
 			"unstable" \
 			"Sair"
 		if [[ $MENU_RESULT == "Sair" ]]; then
@@ -419,7 +420,9 @@ checkout_iso-profiles_and_clean_directories() {
 
 	if [[ -d "$WORK_PATH_ISO_PROFILES" ]]; then
 		msg 'Mova perfis iso-profiles antigos para novo diretório'
-		mv -f $WORK_PATH_ISO_PROFILES $HOME_FOLDER/iso-profiles."$(date "+%Y%m%d_%H:%M:%S")"
+		if ! mv -f $WORK_PATH_ISO_PROFILES $HOME_FOLDER/iso-profiles."$(date "+%Y%m%d_%H:%M:%S")"; then
+		  rm -rf $WORK_PATH_ISO_PROFILES || true
+		fi
 	fi
 
 	msg "Fazendo checkout do repositório: $REPO"
@@ -908,21 +911,19 @@ configure_repos() {
 
 	# Community repositories
 	if [[ "$community_branch" == "testing" ]]; then
-		add_community-testing >>"$config_file" >/dev/null
-		add_community-stable >>"$config_file" >/dev/null
+		add_community-testing | sudo tee -a "$config_file" >/dev/null
+		add_community-stable | sudo tee -a "$config_file" >/dev/null
 	else
-		add_community-stable >>"$config_file" >/dev/null
-		add_community-testing >>"$config_file" >/dev/null
+		add_community-stable | sudo tee -a "$config_file" >/dev/null
 	fi
 
 	if [[ "$biglinux_branch" == "testing" ]]; then
-		add_biglinux-testing >>"$config_file" >/dev/null
-		add_biglinux-stable >>"$config_file" >/dev/null
+		add_biglinux-testing | sudo tee -a "$config_file" >/dev/null
+		add_biglinux-stable | sudo tee -a "$config_file" >/dev/null
 	else
-		add_biglinux-stable >>"$config_file" >/dev/null
-		add_biglinux-testing >>"$config_file" >/dev/null
+		add_biglinux-stable | sudo tee -a "$config_file" >/dev/null
 	fi
-	add_community-extra >>"$config_file" >/dev/null
+	add_community-extra | sudo tee -a "$config_file" >/dev/null
 }
 export -f configure_repos
 
@@ -978,7 +979,6 @@ configure_iso_name() {
 
 	msg 'Configurando nome da ISO'
 	msg_info "Usando ${VOL_ID} para o LABEL/VOL_ID da ISO"
-	#sed -i "s/label=.*/label=${DISTRONAME}_$RELEASE_TAG.iso/"   "$PROFILE_PATH_EDITION"/profile.conf
 	sed -i "s/label=.*/label=${VOL_ID}/" "$PROFILE_PATH_EDITION"/profile.conf
 	sudo sed -i "s/iso_label=.*/iso_label=${VOL_ID}/" "/usr/lib/manjaro-tools/util-iso.sh"
 
@@ -1018,11 +1018,12 @@ build_iso() {
 	verificar_iso_profiles_conf
 	msg "Executar buildiso e capturar o código de saída"
 	msg_info 'LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o};exit \$?"'
-	if $DEBUG; then
-		LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o};exit \$?"
-	else
-		LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o} > /dev/null 2>&1; exit \$?"
-	fi
+
+   	if $DEBUG; then
+	  	LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o};exit \$?"
+  	else
+	  	LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o} > /dev/null 2>&1; exit \$?"
+  	fi
 	BUILD_EXIT_CODE=$?
 
 	msg 'Testando se buildiso falhou, e caso sair com o código de erro'
@@ -1031,17 +1032,6 @@ build_iso() {
 		exit $BUILD_EXIT_CODE
 	fi
 	msg_info "buildiso command exit code $BUILD_EXIT_CODE"
-
-	#	msg 'Verificar arquivos de kernel e tentar cópia manual, independentemente do resultado do buildiso'
-	#	msg_info 'Checking kernel files in rootfs:'
-	#	find /var/lib/manjaro-tools/buildiso/"${EDITION}"/x86_64/rootfs/boot -name "vmlinuz*"
-	#
-	#	msg 'Checking kernel files in iso/boot:'
-	#	if ! find /var/lib/manjaro-tools/buildiso/"${EDITION}"/iso/boot -name "vmlinuz*"; then
-	#		# Warning: Kernel file not found in iso/boot. Attempting manual copy
-	#		sudo mkdir -p "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot"
-	#		sudo cp -v /var/lib/manjaro-tools/buildiso/"${EDITION}"/x86_64/rootfs/boot/vmlinuz* "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/" || echo "Manual copy failed"
-	#	fi
 
 	if $DEBUG; then
 		msg 'Exibir conteúdo de diretórios relevantes para diagnóstico'
@@ -1115,7 +1105,7 @@ make_iso() {
 
 	# Starting repository configuration
 	for fileconfig in user-repos.conf live-overlay/etc/pacman.conf root-overlay/etc/pacman.conf; do
-		msg_info "Configuring $fileconfig"
+		msg_info "Configurando repositórios em: $fileconfig"
 		configure_repos "$PROFILE_PATH_EDITION/$fileconfig" "$COMMUNITYBRANCH" "$BIGBRANCH"
 	done
 
