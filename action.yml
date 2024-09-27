@@ -98,10 +98,6 @@ runs:
 
         #configure extra repos
         {
-          echo "[community-testing]"
-          echo "SigLevel = PackageRequired"
-          echo "Server = https://repo.communitybig.org/testing/\$arch"
-          echo
           echo "[community-extra]"
           echo "SigLevel = PackageRequired"
           echo "Server = https://repo.communitybig.org/extra/\$arch"
