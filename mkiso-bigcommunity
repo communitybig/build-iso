@@ -542,6 +542,7 @@ export -f add_community-stable
 
 add_community-testing() {
 	{
+		echo
 		echo '[community-testing]'
 		echo 'SigLevel = PackageRequired'
 		echo 'Server = https://repo.communitybig.org/testing/$arch'
@@ -612,7 +613,6 @@ add_repository() {
 	"stable")
 		add_biglinux-update-stable | sudo tee -a "$arquivo_conf" >/dev/null
 		add_community-stable | sudo tee -a "$arquivo_conf" >/dev/null
-		add_community-testing | sudo tee -a "$arquivo_conf" >/dev/null
 		add_community-extra | sudo tee -a "$arquivo_conf" >/dev/null
 		;;
 	"testing")
@@ -626,7 +626,6 @@ add_repository() {
 	case "$BIGBRANCH" in
 	"stable")
 		add_biglinux-stable | sudo tee -a "$arquivo_conf" >/dev/null
-		add_biglinux-testing | sudo tee -a "$arquivo_conf" >/dev/null
 		;;
 	"testing")
 		add_biglinux-testing | sudo tee -a "$arquivo_conf" >/dev/null
