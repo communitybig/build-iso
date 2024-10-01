@@ -912,8 +912,10 @@ configure_repos() {
 	if [[ "$community_branch" == "testing" ]]; then
 		add_community-testing | sudo tee -a "$config_file" >/dev/null
 		add_community-stable | sudo tee -a "$config_file" >/dev/null
+		add_community-extra | sudo tee -a "$config_file" >/dev/null
 	else
 		add_community-stable | sudo tee -a "$config_file" >/dev/null
+		add_community-extra | sudo tee -a "$config_file" >/dev/null
 	fi
 
 	if [[ "$biglinux_branch" == "testing" ]]; then
@@ -922,7 +924,6 @@ configure_repos() {
 	else
 		add_biglinux-stable | sudo tee -a "$config_file" >/dev/null
 	fi
-	add_community-extra | sudo tee -a "$config_file" >/dev/null
 }
 export -f configure_repos
 
