@@ -182,7 +182,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [setup] # Espera o job "setup" terminar
     container:
-      image: talesam/community-build:1.3
+      image: talesam/community-build:1.5.1
       options: --privileged
       volumes:
         - /mnt/var_lib_manjaro_tools_buildiso:/var/lib/manjaro-tools/buildiso
@@ -199,12 +199,6 @@ jobs:
         with:
           #fetch-depth: 0    # All commit history is downloaded
           fetch-depth: 1 # Only the most recent commit of the branch will be downloaded
-
-      - name: Install some necessary packages
-        shell: bash
-        run: |
-          # Install some necessary packages
-          sudo pacman -Sy inetutils tree --needed --quiet --noconfirm >/dev/null
   
       - name: Display the current user in host
         shell: bash
