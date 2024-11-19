@@ -197,8 +197,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          #fetch-depth: 0    # Todo o histórico de commits seja baixado
-          fetch-depth: 1 # Apenas o commit mais recente da branch será baixado
+          #fetch-depth: 0    # All commit history is downloaded
+          fetch-depth: 1 # Only the most recent commit of the branch will be downloaded
+
+      - name: Install some necessary packages
+      shell: bash
+      run: |
+        # Install some necessary packages
+        sudo pacman -Sy inetutils tree --needed --quiet --noconfirm >/dev/null
   
       - name: Display the current user in host
         shell: bash
