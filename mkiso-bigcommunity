@@ -4,7 +4,7 @@
 #
 #  mkiso-bigcommunity
 #  Created: ter 24 set 2024 04:26:12 -04
-#  Altered: qui 26 set 2024 06:46:55 -04
+#  Altered: dom 17 nov 2024 12:28:26 -04
 #
 #  Copyright (c) 2024-2024, Vilmar Catafesta <vcatafesta@gmail.com>
 #  All rights reserved.
@@ -31,7 +31,7 @@
 ##############################################################################
 declare APP="${0##*/}"
 declare APPDESC="Wrapper bash para o manjaro buildiso"
-declare VERSION="1.1.3" # Versão do script
+declare VERSION="1.1.6" # Versão do script
 export TERM=${TERM:-xterm}
 export TERM=${TERM:-xterm-256color}
 declare IS_AUTO=false
@@ -45,6 +45,7 @@ configure_vars() {
 	get_distroname() {
 		create_menu \
 			"Escolha nome da distribuição:" \
+			"chililinux" \
 			"bigcommunity" \
 			"biglinux" \
 			"Sair"
@@ -57,6 +58,7 @@ configure_vars() {
 	get_iso_profiles_repo() {
 		create_menu \
 			'Escolha uma repositório iso-profiles:' \
+			'https://github.com/chililinux/iso-profiles' \
 			'https://github.com/talesam/iso-profiles' \
 			'https://gitlab.manjaro.org/profiles-and-settings/iso-profiles.git' \
 			'Sair'
@@ -145,6 +147,19 @@ configure_vars() {
 		BIGBRANCH="${MENU_RESULT}"
 	}
 	get_bigbranch
+	get_chilibranch() {
+		create_menu \
+			"Escolha uma opcao para Branch do ChiliLinux:" \
+			"testing" \
+			"stable" \
+			"unstable" \
+			"Sair"
+		if [[ $MENU_RESULT == "Sair" ]]; then
+			die "${red}" "Construção da ISO cancelada.${reset}"
+		fi
+		CHILIBRANCH="${MENU_RESULT}"
+	}
+	get_chilibranch
 	get_kernel() {
 		create_menu \
 			"Escolha a versao KERNEL:" \
@@ -436,20 +451,20 @@ checkout_iso-profiles_and_clean_directories() {
 export -f checkout_iso-profiles_and_clean_directories
 
 cleaning_working_directories() {
-  local path_dirs=('/__t'
-    '/usr/share/manjaro-tools'
-    '/usr/lib/manjaro-tools'
-    '/var/lib/manjaro-tools/buildiso'
-    '/var/cache/manjaro-tools'
+	local path_dirs=('/__t'
+		'/usr/share/manjaro-tools'
+		'/usr/lib/manjaro-tools'
+		'/var/lib/manjaro-tools/buildiso'
+    '/var/cache/manjaro-tools/iso'
   )
-  local cpath
+	local cpath
 
-  for cpath in "${path_dirs[@]}"; do
-    if [[ -d "$cpath" ]]; then
-      msg "Limpando diretório: $cpath"
-      sudo rm -rf "$cpath"/* || true
-    fi
-  done
+	for cpath in "${path_dirs[@]}"; do
+		if [[ -d "$cpath" ]]; then
+			msg "Limpando diretório: $cpath"
+			sudo rm -rf "$cpath"/* || true
+		fi
+	done
 }
 
 #Step 1 - Setup BUILD - check_directories_and_path
@@ -542,7 +557,6 @@ export -f add_community-stable
 
 add_community-testing() {
 	{
-		echo
 		echo '[community-testing]'
 		echo 'SigLevel = PackageRequired'
 		echo 'Server = https://repo.communitybig.org/testing/$arch'
@@ -561,10 +575,40 @@ add_community-extra() {
 }
 export -f add_community-extra
 
+add_chili-stable() {
+	{
+		echo '[chili-stable]'
+		echo 'SigLevel = Optional TrustAll'
+		echo 'Server = https://repo.chililinux.com/stable/$arch'
+		echo
+	}
+}
+export -f add_chili-stable
+
+add_chili-testing() {
+	{
+		echo '[chili-testing]'
+		echo 'SigLevel = Optional TrustAll'
+		echo 'Server = https://repo.chililinux.com/testing/$arch'
+		echo
+	}
+}
+export -f add_chili-testing
+
+add_chili-extra() {
+	{
+		echo '[chili-extra]'
+		echo 'SigLevel = Optional TrustAll'
+		echo 'Server = https://repo.chililinux.com/extra/$arch'
+		echo
+	}
+}
+export -f add_chili-extra
+
 add_repository() {
 	arquivo_conf="$1"
 
-	for key in biglinux-keyring community-keyring; do
+	for key in biglinux-keyring community-keyring chili-keyring; do
 		msg "Checa e senão, adiciona repositório '$key' no arquivo $arquivo_conf"
 		if ! grep -q "$key" "$arquivo_conf"; then
 			sudo sed -i '/SyncFirst/s/$/ "$key"/' "$arquivo_conf"
@@ -608,24 +652,45 @@ add_repository() {
 	done
 	echo '' | sudo tee -a "$arquivo_conf" >/dev/null
 
-	msg 'Configurando repositórios do Community'
-	case "$COMMUNITYBRANCH" in
-	"stable")
-		add_biglinux-update-stable | sudo tee -a "$arquivo_conf" >/dev/null
-		add_community-stable | sudo tee -a "$arquivo_conf" >/dev/null
-		add_community-extra | sudo tee -a "$arquivo_conf" >/dev/null
-		;;
-	"testing")
-		add_community-testing | sudo tee -a "$arquivo_conf" >/dev/null
-		add_community-stable | sudo tee -a "$arquivo_conf" >/dev/null
-		add_community-extra | sudo tee -a "$arquivo_conf" >/dev/null
-		;;
-	esac
+	if [[ "$DISTRONAME" == "bigcommunity" ]]; then
+  	msg 'Configurando repositórios do Community'
+  	case "$COMMUNITYBRANCH" in
+  	"stable")
+  		add_biglinux-update-stable | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_community-stable | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_community-testing | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_community-extra | sudo tee -a "$arquivo_conf" >/dev/null
+  		;;
+  	"testing")
+  		add_community-testing | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_community-stable | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_community-extra | sudo tee -a "$arquivo_conf" >/dev/null
+  		;;
+  	esac
+  fi
+
+	if [[ "$DISTRONAME" == "chililinux" ]]; then
+  	msg 'Configurando repositórios do ChiliLinux'
+  	case "$CHILIBRANCH" in
+  	"stable")
+  		add_biglinux-update-stable | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_chili-stable | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_chili-testing | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_chili-extra | sudo tee -a "$arquivo_conf" >/dev/null
+  		;;
+  	"testing")
+  		add_chili-testing | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_chili-stable | sudo tee -a "$arquivo_conf" >/dev/null
+  		add_chili-extra | sudo tee -a "$arquivo_conf" >/dev/null
+  		;;
+  	esac
+  fi
 
 	msg 'Configurando repositórios do BigLinux'
 	case "$BIGBRANCH" in
 	"stable")
 		add_biglinux-stable | sudo tee -a "$arquivo_conf" >/dev/null
+		add_biglinux-testing | sudo tee -a "$arquivo_conf" >/dev/null
 		;;
 	"testing")
 		add_biglinux-testing | sudo tee -a "$arquivo_conf" >/dev/null
@@ -909,13 +974,27 @@ configure_repos() {
 	mkdir -p "$config_dir"
 
 	# Community repositories
-	if [[ "$community_branch" == "testing" ]]; then
-		add_community-testing | sudo tee -a "$config_file" >/dev/null
-		add_community-stable | sudo tee -a "$config_file" >/dev/null
-		add_community-extra | sudo tee -a "$config_file" >/dev/null
-	else
-		add_community-stable | sudo tee -a "$config_file" >/dev/null
-		add_community-extra | sudo tee -a "$config_file" >/dev/null
+	if [[ "$DISTRONAME" == "bigcommunity" ]]; then
+  	if [[ "$community_branch" == "testing" ]]; then
+	  	add_community-testing | sudo tee -a "$config_file" >/dev/null
+  		add_community-stable | sudo tee -a "$config_file" >/dev/null
+    	add_community-extra | sudo tee -a "$config_file" >/dev/null
+  	else
+	  	add_community-stable | sudo tee -a "$config_file" >/dev/null
+  		add_community-extra | sudo tee -a "$config_file" >/dev/null
+    fi
+  fi
+
+	# Chililinux repositories
+	if [[ "$DISTRONAME" == "chililinux" ]]; then
+  	if [[ "$chililinux_branch" == "testing" ]]; then
+  		add_chili-testing | sudo tee -a "$config_file" >/dev/null
+  		add_chili-stable | sudo tee -a "$config_file" >/dev/null
+     	add_chili-extra | sudo tee -a "$config_file" >/dev/null
+  	else
+    	add_chili-stable | sudo tee -a "$config_file" >/dev/null
+	  	add_chili-extra | sudo tee -a "$config_file" >/dev/null
+    fi
 	fi
 
 	if [[ "$biglinux_branch" == "testing" ]]; then
@@ -979,14 +1058,29 @@ configure_iso_name() {
 
 	msg 'Configurando nome da ISO'
 	msg_info "Usando ${VOL_ID} para o LABEL/VOL_ID da ISO"
+	#sed -i "s/label=.*/label=${DISTRONAME}_$RELEASE_TAG.iso/"   "$PROFILE_PATH_EDITION"/profile.conf
 	sed -i "s/label=.*/label=${VOL_ID}/" "$PROFILE_PATH_EDITION"/profile.conf
 	sudo sed -i "s/iso_label=.*/iso_label=${VOL_ID}/" "/usr/lib/manjaro-tools/util-iso.sh"
 
-	case "$MANJAROBRANCH/$COMMUNITYBRANCH" in
-	stable/stable) ISO_BASENAME="${DISTRONAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
-	stable/testing | testing/*) ISO_BASENAME="${DISTRONAME}_BETA_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
-	unstable/*) ISO_BASENAME="${DISTRONAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
-	esac
+  if [[ "$DISTRONAME" == 'bigcommunity' ]]; then
+  	case "$MANJAROBRANCH/$COMMUNITYBRANCH" in
+  	stable/stable) ISO_BASENAME="${DISTRONAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	stable/testing | testing/*) ISO_BASENAME="${DISTRONAME}_BETA_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	unstable/*) ISO_BASENAME="${DISTRONAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	esac
+  elif [[ "$DISTRONAME" == 'biglinux' ]]; then
+  	case "$MANJAROBRANCH/$BIGBRANCH" in
+	  stable/stable) ISO_BASENAME="${DISTRONAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	stable/testing | testing/*) ISO_BASENAME="${DISTRONAME}_BETA_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	unstable/*) ISO_BASENAME="${DISTRONAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+	  esac
+  else
+  	case "$MANJAROBRANCH/$BIGBRANCH" in
+	  stable/stable) ISO_BASENAME="${DISTRONAME}_STABLE_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	stable/testing | testing/*) ISO_BASENAME="${DISTRONAME}_BETA_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+  	unstable/*) ISO_BASENAME="${DISTRONAME}_DEVELOPMENT_${EDITION}_${RELEASE_TAG%%_*}_k${KERNEL}.iso" ;;
+	  esac
+  fi
 	msg_info "ISO_BASENAME set to: $ISO_BASENAME"
 }
 export -f configure_iso_name
@@ -1001,6 +1095,7 @@ build_iso() {
 	echo "MANJAROBRANCH            : $MANJAROBRANCH"
 	echo "COMMUNITYBRANCH          : $COMMUNITYBRANCH"
 	echo "BIGLINUXBRANCH           : $BIGBRANCH"
+	echo "CHILILINUXBRANCH         : $CHILIBRANCH"
 	echo "KERNEL_VERSION_DOT       : ${KERNEL_VERSION_DOT}"
 	echo "KERNEL_NAME              : ${KERNEL_NAME}"
 	echo "SCOPE                    : $SCOPE"
@@ -1019,11 +1114,15 @@ build_iso() {
 	msg "Executar buildiso e capturar o código de saída"
 	msg_info 'LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o};exit \$?"'
 
-   	if $DEBUG; then
+  if [[ "$DISTRONAME" == 'chililinux' ]]; then
+  	if $DEBUG; then
 	  	LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o};exit \$?"
   	else
 	  	LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o} > /dev/null 2>&1; exit \$?"
   	fi
+  else
+    LC_ALL=C sudo -u $USERNAME bash -c "buildiso ${SCOPE:+-f} -p $EDITION -b $MANJAROBRANCH -k linux${KERNEL_NAME} ${OFFICE:+-o} > /dev/null 2>&1; exit \$?"
+	fi
 	BUILD_EXIT_CODE=$?
 
 	msg 'Testando se buildiso falhou, e caso sair com o código de erro'
@@ -1032,6 +1131,17 @@ build_iso() {
 		exit $BUILD_EXIT_CODE
 	fi
 	msg_info "buildiso command exit code $BUILD_EXIT_CODE"
+
+	#	msg 'Verificar arquivos de kernel e tentar cópia manual, independentemente do resultado do buildiso'
+	#	msg_info 'Checking kernel files in rootfs:'
+	#	find /var/lib/manjaro-tools/buildiso/"${EDITION}"/x86_64/rootfs/boot -name "vmlinuz*"
+	#
+	#	msg 'Checking kernel files in iso/boot:'
+	#	if ! find /var/lib/manjaro-tools/buildiso/"${EDITION}"/iso/boot -name "vmlinuz*"; then
+	#		# Warning: Kernel file not found in iso/boot. Attempting manual copy
+	#		sudo mkdir -p "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot"
+	#		sudo cp -v /var/lib/manjaro-tools/buildiso/"${EDITION}"/x86_64/rootfs/boot/vmlinuz* "/var/lib/manjaro-tools/buildiso/${EDITION}/iso/boot/" || echo "Manual copy failed"
+	#	fi
 
 	if $DEBUG; then
 		msg 'Exibir conteúdo de diretórios relevantes para diagnóstico'
@@ -1103,15 +1213,15 @@ make_iso() {
 	# Starting kernel configuration
 	configure_kernel
 
-# Starting repository configuration
-  for fileconfig in pacman.conf; do
-    msg_info "Configurando repositórios em: $fileconfig"
-    configure_repos "$WORK_PATH_ISO_PROFILES/shared/$fileconfig" "$COMMUNITYBRANCH" "$BIGBRANCH"
-  done
+	# Starting repository configuration
+	for fileconfig in pacman.conf; do
+		msg_info "Configurando repositórios em: $fileconfig"
+		configure_repos "$WORK_PATH_ISO_PROFILES/shared/$fileconfig" "$COMMUNITYBRANCH" "$BIGBRANCH"
+	done
 
 	set_build_info
 	configure_iso_name
-	build_iso
+  build_iso
 	cleanup_and_move_files
 	if $DEBUG; then
 		ls -lah
@@ -1122,6 +1232,14 @@ make_iso() {
 	msg_info "Finish Date Time : $end_datetime"
 	msg_info "Time elapsed     : ${red}$(sh_time_elapsed)"
 	exit 0
+}
+
+check_user() {
+  set_varcolors
+	# Verifica se o usuário é root
+	if [ "$EUID" -eq 0 ]; then
+    die "${red}" "Construção da ISO não pode ser com usuário root ${reset}"
+	fi
 }
 
 ## start script

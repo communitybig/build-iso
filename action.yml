@@ -9,6 +9,7 @@ inputs:
     options:
       - bigcommunity
       - biglinux
+      - manjaro
     default: "bigcommunity"
   iso_profiles_repo:
     type: choice
@@ -16,6 +17,7 @@ inputs:
     required: true
     options:
       - "https://github.com/talesam/iso-profiles"
+      - "https://github.com/biglinux/iso-profiles"
       - "https://gitlab.manjaro.org/profiles-and-settings/iso-profiles.git"
     default: "https://github.com/talesam/iso-profiles"
   iso_profiles_branch:
@@ -97,14 +99,16 @@ runs:
         # Setup build environment
 
         #configure extra repos
-        {
-          echo "[community-extra]"
-          echo "SigLevel = PackageRequired"
-          echo "Server = https://repo.communitybig.org/extra/\$arch"
-          echo
-        } | sudo tee -a /etc/pacman.conf > /dev/null
+        if [[ "${{ inputs.distroname }}" == 'bigcommunity' ]]; then
+          {
+            echo "[community-extra]"
+            echo "SigLevel = PackageRequired"
+            echo "Server = https://repo.communitybig.org/extra/\$arch"
+            echo
+          } | sudo tee -a /etc/pacman.conf > /dev/null
+        fi
 
-        # atualizar e instalar pacotes adicionais
+        # update and install additional packages
         sudo pacman -Syu --quiet --needed --noconfirm --overwrite \* \
           base-devel \
           manjaro-tools-iso-git \
@@ -155,26 +159,26 @@ runs:
         sudo install -m0644 biglinux-key/usr/share/pacman/keyrings/* /etc/pacman.d/gnupg/
         sudo rm -r biglinux-key
 
-        git clone https://github.com/communitybig/community-keyring.git
-        sudo install -m0644 community-keyring/community.gpg /usr/share/pacman/keyrings/
-        sudo install -m0644 community-keyring/community-trusted /usr/share/pacman/keyrings/
-        sudo install -m0644 community-keyring/community-revoked /usr/share/pacman/keyrings/
-        sudo rm -r community-keyring
+        if [[ "${{ inputs.distroname }}" == 'bigcommunity' ]]; then
+          git clone https://github.com/communitybig/community-keyring.git
+          sudo install -m0644 community-keyring/community.gpg /usr/share/pacman/keyrings/
+          sudo install -m0644 community-keyring/community-trusted /usr/share/pacman/keyrings/
+          sudo install -m0644 community-keyring/community-revoked /usr/share/pacman/keyrings/
+          sudo rm -r community-keyring
+        fi
 
         # Inicializar o chaveiro do pacman
         #sudo pacman -S biglinux-keyring community-keyring
         sudo pacman-key --init
-        sudo pacman-key --populate archlinux
-        sudo pacman-key --populate biglinux
-        sudo pacman-key --populate community
+        sudo pacman-key --populate
 
         # Atualizar os bancos de dados do pacman
         sudo pacman -Sy --quiet --noconfirm
 
-    - name: Ajuste nos hooks do mkinitcpio
+    - name: Adjustment of mkinitcpio hooks
       shell: bash
       run: |
-        # Ajuste nos hooks do mkinitcpio (se ainda necessário)
+        # Adjust mkinitcpio hooks (if still necessary)
         sudo sed -i -e 's/File/Path/' /usr/share/libalpm/hooks/*hook*
 
     - name: Create mknod /dev/sr0
@@ -189,6 +193,8 @@ runs:
       shell: bash
       run: |
         # Declare variáveis de ambiente
+        DISTRONAME_ISOPROFILES="${{ inputs.distroname }}"
+        
         {
           echo "USERNAME=builduser"
           echo "HOME_FOLDER=/home/builduser"
@@ -196,14 +202,15 @@ runs:
           echo "EDITION=${{ inputs.edition }}"
           echo "WORK_PATH=/__w/build-iso/build-iso"
           echo "WORK_PATH_ISO_PROFILES=/__w/build-iso/build-iso/iso-profiles"
-          echo "PROFILE_PATH=/__w/build-iso/build-iso/iso-profiles/community"
-          echo "PROFILE_PATH_EDITION=/__w/build-iso/build-iso/iso-profiles/community/${{ inputs.edition }}"
+          echo "DISTRONAME=${{ inputs.distroname }}"
+          echo "DISTRONAME_ISOPROFILES=$DISTRONAME_ISOPROFILES"
+          echo "PROFILE_PATH=/__w/build-iso/build-iso/iso-profiles/${DISTRONAME_ISOPROFILES}"
+          echo "PROFILE_PATH_EDITION=/__w/build-iso/build-iso/iso-profiles/${DISTRONAME_ISOPROFILES}/${{ inputs.edition }}"
           echo "PATH_MANJARO_ISO_PROFILES=/usr/share/manjaro-tools/iso-profiles"
           echo "PATH_MANJARO_TOOLS=/usr/share/manjaro-tools"
           echo "VAR_CACHE_MANJARO_TOOLS=/var/cache/manjaro-tools"
           echo "VAR_CACHE_MANJARO_TOOLS_ISO=/var/cache/manjaro-tools/iso"
           echo "DEBUG=${{ inputs.tmate }}"
-          echo "DISTRONAME=${{ inputs.distroname || 'bigcommunity' }}"
           echo "MANJAROBRANCH=${{ inputs.manjaro_branch }}"
           echo "COMMUNITYBRANCH=${{ inputs.community_branch }}"
           echo "BIGBRANCH=${{ inputs.biglinux_branch }}"
@@ -216,9 +223,9 @@ runs:
     - name: Build ISO Image ${{ github.event.client_payload.edition || inputs.edition }}
       shell: bash
       run: |
-        # Carregando script e building ISO
+        # Loading script and building ISO
         if [[ ! -e "$WORK_PATH/mkiso-bigcommunity" ]]; then
-          echo "ERRO(L284): Script $WORK_PATH/mkiso-bigcommunity não encontrado ou tamanho zerado!"
+          echo "ERROR(A-L308): Script $WORK_PATH/mkiso-bigcommunity not found or size zero!"
           exit 1
         fi
         pushd "$WORK_PATH" || true
