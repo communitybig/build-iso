@@ -32,7 +32,7 @@ inputs:
     default: stable
   community_branch:
     description: "Community branch (stable, testing)"
-    required: true
+    required: false
   biglinux_branch:
     description: "BigLinux branch (stable, testing)"
     required: true
@@ -172,7 +172,7 @@ runs:
         sudo pacman-key --init
         sudo pacman-key --populate
 
-        # Atualizar os bancos de dados do pacman
+        # Update pacman databases
         sudo pacman -Sy --quiet --noconfirm
 
     - name: Adjustment of mkinitcpio hooks
@@ -189,10 +189,10 @@ runs:
         sudo chmod 660 /dev/sr0 || true
         sudo chown root:root /dev/sr0 || true
 
-    - name: Declare variáveis de ambiente
+    - name: Declare environment variables
       shell: bash
       run: |
-        # Declare variáveis de ambiente
+        # Declare environment variables
         DISTRONAME_ISOPROFILES="${{ inputs.distroname }}"
         
         {

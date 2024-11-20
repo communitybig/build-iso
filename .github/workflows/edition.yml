@@ -114,6 +114,10 @@ jobs:
           echo "START_TIME=$START_TIME" >> $GITHUB_ENV
           echo "START_TIMESTAMP=$START_TIMESTAMP" >> $GITHUB_ENV
 
+      - name: Create a Welcome file
+        run: |
+          echo "Hello from setup job" > shared_file.txt
+
       - name: Install dependencies on HOST
         run: |
           #sudo apt-get update
@@ -160,7 +164,7 @@ jobs:
             -d chat_id="${CHAT_ID}" \
             -d text="${MESSAGE}" \
             -d parse_mode="HTML"
-  
+
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
@@ -198,6 +202,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: shared-file
+
+      - name: Display file content
+        run: cat shared_file.txt
 
       - name: Checkout repository
         uses: actions/checkout@v4
