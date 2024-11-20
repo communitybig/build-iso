@@ -329,7 +329,6 @@ jobs:
         shell: bash
         run: |
           # Function to send Telegram message
-          source /tmp/send_telegram_message.sh
 
           START_TIME="${{ inputs.start_time }}"
           START_TIMESTAMP="${{ inputs.start_timestamp }}"
