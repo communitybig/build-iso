@@ -13,6 +13,7 @@ on:
         options:
           - bigcommunity
           - biglinux
+          - manjaro
         default: "bigcommunity"
       iso_profiles_repo:
         type: choice
@@ -20,6 +21,7 @@ on:
         required: true
         options:
           - "https://github.com/talesam/iso-profiles"
+          - "https://github.com/biglinux/iso-profiles"
           - "https://gitlab.manjaro.org/profiles-and-settings/iso-profiles.git"
         default: "https://github.com/talesam/iso-profiles"
       scope:
@@ -46,6 +48,7 @@ on:
           - latest
           - lts
           - oldLts
+          - xanmod
         default: lts
       manjaro_branch:
         type: choice
@@ -102,9 +105,14 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Create a Welcome file
+      - name: Capturar hora de início do workflow
+        id: start-time
         run: |
-          echo "Hello from setup job" > shared_file.txt
+          START_TIME=$(date +"%Y-%m-%d %H:%M:%S")  # Hora completa
+          START_TIMESTAMP=$(date +%s)  # Timestamp em segundos
+          echo "Início do Workflow: $START_TIME"
+          echo "START_TIME=$START_TIME" >> $GITHUB_ENV
+          echo "START_TIMESTAMP=$START_TIMESTAMP" >> $GITHUB_ENV
 
       - name: Install dependencies on HOST
         run: |
@@ -117,15 +125,6 @@ jobs:
           sudo mkdir -p /mnt/var_lib_manjaro_tools_buildiso
           sudo mkdir -p /mnt/var_cache_manjaro_tools_iso
 
-      - name: Capturar hora de início do workflow
-        id: start-time
-        run: |
-          START_TIME=$(date +"%Y-%m-%d %H:%M:%S")  # Hora completa
-          START_TIMESTAMP=$(date +%s)  # Timestamp em segundos
-          echo "Início do Workflow: $START_TIME"
-          echo "START_TIME=$START_TIME" >> $GITHUB_ENV
-          echo "START_TIMESTAMP=$START_TIMESTAMP" >> $GITHUB_ENV
-
       - name: Enviar notificação para o Telegram
         shell: bash
         run: |
@@ -136,8 +135,11 @@ jobs:
           manjaro) iso_branch="${iso_manjaro_branch}";;
           esac
 
-          MESSAGE="🚀 <b>[step 0/6] build-iso - INICIANDO WORKFLOW</b>
+          link_action=https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          
+          MESSAGE="🚀 <b>[step 1/2] build-iso - INICIANDO WORKFLOW</b>
           <b>Job:</b> <code>#${GITHUB_RUN_NUMBER}</code>
+          <b>Job URL:</b> <a href='https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}'>${link_action}</a>
           <b>Workflow:</b> <code>build-iso/edition.yml</code>
           <b>Iniciado/Triggered:</b> <code>${started_by_user}/${triggered_by_user}</code>
           <b>Inicio:</b> <code>${{ env.START_TIME }}</code>
@@ -150,6 +152,9 @@ jobs:
           <b>Release:</b> <code>${iso_release_tag}</code>
           <b>Kernel:</b> <code>${iso_kernel}</code>
           <b>ISO Name:</b> <code>${iso_distroname}_${iso_branch^^}_${iso_edition}_${iso_release_tag}</code>"
+          # Remove as tags HTML e exibe o resultado no terminal
+          echo -e "${green}$(sed 's/<[^>]*>//g' <<< "$MESSAGE")${reset}"
+          # Envia a mensagem original com HTML para o Telegram
 
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
             -d chat_id="${CHAT_ID}" \
@@ -251,6 +256,10 @@ jobs:
           # Parâmetros adicionais (se necessário)
           iso_profiles_repo: ${{ github.event.client_payload.iso_profiles_repo || inputs.iso_profiles_repo }}
           # iso_profiles_branch: ${{ github.event.client_payload.iso_profiles_branch || inputs.iso_profiles_branch }}
+          
+          # Passando o START_TIME para action.yml
+          start_time: "${{ env.START_TIME }}"
+          start_timestamp: "${{ env.START_TIMESTAMP }}"
 
       - name: Set ISO path
         run: |
@@ -308,3 +317,32 @@ jobs:
           tag_name: ${{ github.event.client_payload.release_tag || inputs.release_tag }}
           name: ${{ steps.prepare-iso.outputs.release_name }}
           generate_release_notes: true
+
+      - name: Capturar hora de término e calcular duração
+        shell: bash
+        run: |
+          # Function to send Telegram message
+          source /tmp/send_telegram_message.sh
+
+          START_TIME="${{ inputs.start_time }}"
+          START_TIMESTAMP="${{ inputs.start_timestamp }}"
+          END_TIME=$(date +"%Y-%m-%d %H:%M:%S")  # Hora completa
+          END_TIMESTAMP=$(date +%s)
+          duration=$((END_TIMESTAMP - START_TIMESTAMP))
+
+          hours=$((duration / 3600))
+          minutes=$(( (duration % 3600) / 60 ))
+          seconds=$((duration % 60))
+
+          MESSAGE="⏳ <b>[step 2/2] Job <code>#${GITHUB_RUN_NUMBER}</code> finalizado em:</b> <code>${hours}h ${minutes}m ${seconds}s</code>
+          <b>Job:</b> <code>#${GITHUB_RUN_NUMBER}</code>
+          <b>Workflow:</b> <code>build-package/action.yml</code>
+          <b>Inicio:</b> <code>${START_TIME}</code>
+          <b>Fim   :</b> <code>${END_TIME}</code>"
+          # Remove as tags HTML e exibe o resultado no terminal
+          echo -e "${green}$(sed 's/<[^>]*>//g' <<< "$MESSAGE")${reset}"
+          # Envia a mensagem original com HTML para o Telegram
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d chat_id="${CHAT_ID}" \
+            -d text="${MESSAGE}" \
+            -d parse_mode="HTML"
