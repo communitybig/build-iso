@@ -42,7 +42,7 @@ on:
           - biglinux
           - chililinux
           - manjaro
-        default: "chililinux"
+        default: "bigcommunity"
       iso_profiles_repo:
         type: choice
         description: "Choice ISO profiles"
@@ -51,9 +51,8 @@ on:
           - "https://github.com/talesam/iso-profiles"
           - "https://github.com/biglinux/iso-profiles"
           - "https://github.com/chililinux/iso-profiles"
-          - "https://github.com/chililinux/manjaro-iso-profiles"
           - "https://gitlab.manjaro.org/profiles-and-settings/iso-profiles.git"
-        default: "https://github.com/chililinux/iso-profiles"
+        default: "https://github.com/talesam/iso-profiles"
       scope:
         type: choice
         description: "Build scope"
@@ -129,7 +128,7 @@ env:
   started_by_user: "${{ github.actor }}"
   triggered_by_user: "${{ github.triggering_actor }}"
   repo_path: "${{ secrets.PKGBUILD_DIR }}"
-  iso_distroname: "${{ github.event.client_payload.distroname || inputs.distroname || 'chililinux' }}"
+  iso_distroname: "${{ github.event.client_payload.distroname || inputs.distroname || 'bigcommunity' }}"
   iso_manjaro_branch: "${{ github.event.client_payload.manjaro_branch || inputs.manjaro_branch}}"
   iso_biglinux_branch: "${{ github.event.client_payload.biglinux_branch || inputs.biglinux_branch}}"
   iso_community_branch: "${{ github.event.client_payload.community_branch || inputs.community_branch}}"
@@ -319,7 +318,7 @@ jobs:
         id: build
         with:
           # Parâmetros básicos da ISO
-          distroname: ${{ github.event.client_payload.distroname || inputs.distroname || 'chililinux' }}
+          distroname: ${{ github.event.client_payload.distroname || inputs.distroname || 'bigcommunity' }}
           edition: ${{ github.event.client_payload.edition || inputs.edition}}
           #release_tag: ${{ github.event.client_payload.release_tag || inputs.release_tag }}
           release_tag: ${{ env.RELEASE_TAG }}
