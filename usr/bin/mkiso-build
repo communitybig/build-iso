@@ -60,7 +60,7 @@ get_distroname() {
 get_iso_profiles_repo() {
 	create_menu \
 		'Escolha uma repositório iso-profiles:' \
-		'https://github.com/talesam/iso-profiles' \
+		'https://github.com/communitybig/iso-profiles' \
 		'https://github.com/biglinux/iso-profiles' \
 		'https://github.com/chililinux/iso-profiles' \
 		'https://gitlab.manjaro.org/profiles-and-settings/iso-profiles.git' \
