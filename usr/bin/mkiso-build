@@ -34,7 +34,7 @@
 ##############################################################################
 declare APP="${0##*/}"
 declare APPDESC="Wrapper bash para o buildiso"
-declare VERSION="1.12.1" # Versão do script
+declare VERSION="1.12.2" # Versão do script
 export TERM=${TERM:-xterm}
 export TERM=${TERM:-xterm-256color}
 declare IS_AUTO=false
@@ -42,11 +42,11 @@ declare IS_AUTO=false
 configure_vars() {
 	# Declare variáveis de ambiente
 	# somente ativada quando rodar manualmente (-m), no github não é necessário
-	declare -aG bigcommunity_edition=(cinnamon cosmic deepin gnome kde xfce wmaker)
+	declare -aG bigcommunity_edition=(cinnamon cosmic deepin gnome hyprland kde xfce wmaker)
 	declare -aG biglinux_edition=(base FalaQueEuTeEscuto flisol kde small xivastudio)
 	declare -aG chililinux_edition=(base cinnamon cosmic deepin gnome i3 kde xfce wmaker)
 	declare -aG manjaro_edition=(architect bladebook gnome gnome-next grub i3 kde kde-dev netinstall nxd xfce)
-	declare -aG talesam_edition=(cinnamon cosmic deepin gnome kde xfce wmaker)
+	declare -aG talesam_edition=(cinnamon cosmic deepin gnome hyprland kde xfce wmaker)
 	declare -aG vcatafesta_edition=(base cinnamon cosmic deepin gnome kde xfce wmaker)
 	declare -aG aDistros=('bigcommunity' 'biglinux' 'chililinux' 'manjaro' 'Sair')
 	declare -aG aBranchs=('stable' 'testing' 'unstable' 'Sair')

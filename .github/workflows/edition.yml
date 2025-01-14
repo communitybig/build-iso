@@ -119,7 +119,7 @@ on:
           - cosmic
           - deepin
           - gnome
-          - i3
+          - hyprland
           - kde
           - xfce
           - wmaker
